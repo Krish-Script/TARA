@@ -1,0 +1,31 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Temporary audio files created during recording
+temp_recording.wav
+*.wav
+*.mp3
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Don't commit model weights (they're huge and downloaded automatically)
+*.bin
+*.safetensors
+models/

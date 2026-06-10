@@ -1,0 +1,10 @@
+# TARA — Week 1 Python Dependencies
+# Install with: pip install -r requirements.txt
+#
+# NOTE: PyAudio is NOT listed here because it needs special
+#       installation on Windows. See SETUP.md Step 6.
+
+faster-whisper>=1.0.0   # Whisper STT, CPU-optimised
+ollama>=0.4.0            # Ollama Python client for local LLM
+pyttsx3>=2.90            # Offline TTS using Windows SAPI5
+numpy>=1.24.0            # Audio array math (used in stt.py)
