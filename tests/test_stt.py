@@ -1,13 +1,6 @@
 """
-tests/test_stt.py — Isolated STT Test (Day 2)
+tests/test_stt.py — Isolated STT Test
 ==============================================
-Run this ALONE before touching LLM or TTS.
-Goal: confirm your microphone works and Whisper transcribes correctly.
-
-Usage:
-    cd D:\\TARA
-    .venv\\Scripts\\activate
-    python tests/test_stt.py
 """
 
 import sys

@@ -13,11 +13,6 @@ Data flow:
 Run this ONLY after tests/test_stt.py, test_llm.py, and test_tts.py
 all pass individually.
 
-Usage:
-    cd D:\\TARA
-    .venv\\Scripts\\activate
-    python main.py
-
 Voice commands:
     "quit" / "exit" / "goodbye" → stop the assistant
     "clear memory"              → reset conversation history

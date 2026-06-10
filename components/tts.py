@@ -2,15 +2,6 @@
 components/tts.py — Text-to-Speech Component
 ============================================
 Uses pyttsx3 with Windows SAPI5 (built-in Windows speech engine).
-
-Why pyttsx3?
-  - 100% offline — no model downloads required
-  - Uses zero GPU memory
-  - Tiny CPU footprint
-  - Works immediately on any Windows machine
-
-The trade-off: it sounds more robotic than neural TTS.
-Week 2+ you can swap this for Coqui-TTS or Kokoro for better voice quality.
 """
 
 import time

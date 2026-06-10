@@ -1,13 +1,6 @@
 """
-tests/test_tts.py — Isolated TTS Test (Day 4)
+tests/test_tts.py — Isolated TTS
 ==============================================
-Run this ALONE before integrating with STT or LLM.
-Goal: confirm your speakers work and find the best voice.
-
-Usage:
-    cd D:\\TARA
-    .venv\\Scripts\\activate
-    python tests/test_tts.py
 """
 
 import sys

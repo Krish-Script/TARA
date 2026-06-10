@@ -2,10 +2,6 @@
 components/stt.py — Speech-to-Text Component
 =============================================
 Uses faster-whisper (optimised version of OpenAI Whisper) on CPU.
-
-Why CPU?  Your RTX 3050 has only 4 GB VRAM.
-          Keeping Whisper on CPU reserves ALL GPU memory for the LLM.
-          CPU inference with int8 quantisation is fast enough (~1-3 seconds).
 """
 
 import os

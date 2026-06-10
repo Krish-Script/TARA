@@ -1,17 +1,6 @@
 """
-tests/test_llm.py — Isolated LLM Test (Day 3)
+tests/test_llm.py — Isolated LLM Test
 ==============================================
-Run this ALONE before touching STT or TTS.
-Goal: confirm Ollama is running and the model responds correctly.
-
-Prerequisites:
-  - Ollama app is installed and running
-  - llama3.2:3b has been pulled (ollama pull llama3.2:3b)
-
-Usage:
-    cd D:\\TARA
-    .venv\\Scripts\\activate
-    python tests/test_llm.py
 """
 
 import sys

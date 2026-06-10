@@ -2,12 +2,6 @@
 components/llm.py — Language Model Component
 =============================================
 Uses Ollama to run LLaMA 3.2 locally on your GPU.
-
-How Ollama works:
-  - Ollama is a separate app/server running in the background.
-  - This Python file sends text to it over localhost (no internet).
-  - Ollama loads the model onto your GPU and sends back a response.
-  - Think of Ollama as the engine; this file is the steering wheel.
 """
 
 import time

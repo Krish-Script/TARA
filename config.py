@@ -25,7 +25,7 @@ AUDIO_CONFIG = {
 
 # ── Language Model (Ollama + LLaMA) ─────────────────────────
 LLM_CONFIG = {
-    "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
+    "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM
                                # upgrade to llama3.2:7b in Week 2 if VRAM allows
     "system_prompt": (
         "You are TARA, a helpful voice assistant running entirely "
