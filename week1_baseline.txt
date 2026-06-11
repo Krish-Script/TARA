@@ -1,0 +1,7 @@
+TARA — Week 1 Baseline Log
+===========================
+Day 2 — STT (Whisper, CPU, base model, int8)
+  Round 1:  0.89s
+  Round 2:  0.66s
+  Round 3:  0.56s
+  Average:  0.70s ⭐

@@ -1,5 +1,6 @@
 """
 tests/test_stt.py — Isolated STT Test
+Checking if Speech-to-Text (STT) is working correctly
 ==============================================
 """
 
