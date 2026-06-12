@@ -1,5 +1,6 @@
 """
 tests/test_llm.py — Isolated LLM Test
+This test checks if the local LLM component is working correctly by sending a few simple prompts and measuring the response time.
 ==============================================
 """
 
@@ -54,7 +55,7 @@ def test_llm():
 
     print()
     print("Also check: open Task Manager → Performance → GPU")
-    print("Your VRAM usage should be around 2.0-2.2 GB while the model is loaded.")
+    print("Your VRAM usage should be around 2.0-3.0 GB while the model is loaded.")
 
 
 if __name__ == "__main__":

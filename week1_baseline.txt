@@ -1,7 +1,13 @@
 TARA — Week 1 Baseline Log
 ===========================
+
 Day 2 — STT (Whisper, CPU, base model, int8)
   Round 1:  0.89s
   Round 2:  0.66s
   Round 3:  0.56s
-  Average:  0.70s ⭐
+  Average:  0.70s 
+
+Day 3 — LLM (llama3.2:3b, Ollama, GPU)
+  Cold start (first load):     80.82s   ← one-time, happens once per session
+  Warm inference avg:           0.68s   ← real baseline
+  VRAM usage:                   2.4-2.5 GB
