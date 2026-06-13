@@ -10,9 +10,6 @@ Data flow:
         → pyttsx3 (response → speech)
         → Your Speakers
 
-Run this ONLY after tests/test_stt.py, test_llm.py, and test_tts.py
-all pass individually.
-
 Voice commands:
     "quit" / "exit" / "goodbye" → stop the assistant
     "clear memory"              → reset conversation history

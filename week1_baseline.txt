@@ -17,3 +17,19 @@ Day 4 — TTS (pyttsx3, voice = Zira)
   Phrase 2: 5.00s
   Phrase 3: 4.19s
   Average:  4.95s
+
+Day 5 — End-to-End Pipeline
+  Session duration:  1.2 min, 3 turns
+  STT avg:           0.62s
+  LLM avg:           1.41s  (warm)
+  TTS avg:           11.23s (scales with response length, ~30-40 words) using pyttsx3
+  Time-to-first-response (STT+LLM): ~2.0s this is real responsiveness metric
+  VRAM steady-state: 2.2 GB on target
+  Errors: none — quit command ("bye-bye") worked correctly
+
+Week 2 Planning Note
+  TTS upgrade candidate: Piper TTS
+    - CPU-only by default (no GPU/VRAM risk unless onnxruntime-gpu explicitly installed)
+    - Piper-medium benchmarked faster-than-realtime on Raspberry Pi 4 → should be well under 1s on CPU
+    - New dependency needed for audio playback (sounddevice or simpleaudio)
+    - Current pyttsx3 bottleneck: 11.23s avg for 30-40 word response
