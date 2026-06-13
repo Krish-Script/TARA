@@ -1,5 +1,5 @@
 # ============================================================
-# config.py — TARA Central Configuration
+# config.py — ARIA Central Configuration
 # Change settings here without touching any other file.
 # ============================================================
 
@@ -25,10 +25,10 @@ AUDIO_CONFIG = {
 
 # ── Language Model (Ollama + LLaMA) ─────────────────────────
 LLM_CONFIG = {
-    "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM
+    "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
                                # upgrade to llama3.2:7b in Week 2 if VRAM allows
     "system_prompt": (
-        "You are TARA, a helpful voice assistant running entirely "
+        "You are ARIA, a helpful voice assistant running entirely "
         "on the user's local device with no internet connection. "
         "Always respond in 2 to 3 sentences maximum. "
         "Never use markdown, bullet points, headers, or asterisks. "
@@ -44,5 +44,5 @@ LLM_CONFIG = {
 TTS_CONFIG = {
     "rate":        175,   # words per minute (default 200, slower = clearer)
     "volume":      1.0,   # 0.0 to 1.0
-    "voice_index": 1,     # 0 or 1 — run tests/test_tts.py to see your options
+    "voice_index": 1,     # 0 = David, 1 = Zira (current) — run tests/test_tts.py to list voices
 }

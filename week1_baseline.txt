@@ -11,3 +11,9 @@ Day 3 — LLM (llama3.2:3b, Ollama, GPU)
   Cold start (first load):     80.82s   ← one-time, happens once per session
   Warm inference avg:           0.68s   ← real baseline
   VRAM usage:                   2.4-2.5 GB
+
+Day 4 — TTS (pyttsx3, voice = Zira)
+  Phrase 1: 5.66s
+  Phrase 2: 5.00s
+  Phrase 3: 4.19s
+  Average:  4.95s

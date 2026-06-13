@@ -75,7 +75,7 @@ class LanguageModel:
         latency = time.time() - start
 
         # Extract the text from the response object
-        assistant_text = response.message.content.strip()
+        assistant_text = response.message.content.strip() # type: ignore
 
         # Save the assistant's reply to memory
         self.conversation_history.append({

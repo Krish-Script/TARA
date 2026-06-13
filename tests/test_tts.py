@@ -29,7 +29,7 @@ def test_tts():
 
     # Test phrases
     test_phrases = [
-        "Hello! I am TARA, your offline AI assistant.",
+        "Hello! I am Taara, your offline AI assistant.",
         "All of my processing happens on your local device.",
         "No internet connection is required for me to work.",
     ]

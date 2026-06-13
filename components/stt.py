@@ -113,7 +113,7 @@ class SpeechToText:
         """
         start = time.time()
 
-        segments, _ = self.model.transcribe(
+        segments, _ = self.model.transcribe(  # type: ignore
             audio_path,
             language=self.config.get("language", "en"),
             beam_size=self.config.get("beam_size", 5),
