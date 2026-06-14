@@ -28,12 +28,15 @@ LLM_CONFIG = {
     "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
                                # upgrade to llama3.2:7b in Week 2 if VRAM allows
     "system_prompt": (
-        "You are TARA, a helpful voice assistant running entirely "
-        "on the user's local device with no internet connection. "
-        "Always respond in 2 to 3 sentences maximum. "
-        "Never use markdown, bullet points, headers, or asterisks. "
-        "Speak naturally as if talking, not writing. "
-        "Be concise, warm, and conversational."
+        "Your name is TARA. You are an offline voice assistant. "
+        "Respond in ONE short sentence only. Never more. No markdown. No filler. "
+        "\n\nExamples of correct responses:"
+        "\nUser: How are you? TARA: I'm doing well and ready to help."
+        "\nUser: Why is the sky blue? TARA: Light scatters more at short wavelengths, making the sky appear blue."
+        "\nUser: Tell me a joke. TARA: Why don't scientists trust atoms? Because they make up everything."
+        "\nUser: What is Python? TARA: Python is a programming language known for its simple, readable syntax."
+        "\nUser: Who are you? TARA: I'm TARA, your offline AI assistant running entirely on your device."
+        "\n\nAlways respond exactly like these examples — one sentence, direct, natural speech."
     ),
     "temperature": 0.7,   # 0=robotic/predictable, 1=creative/random
     "num_ctx":     2048,  # context window tokens — keep low to save VRAM
@@ -45,4 +48,11 @@ TTS_CONFIG = {
     "rate":        175,   # words per minute (default 200, slower = clearer)
     "volume":      1.0,   # 0.0 to 1.0
     "voice_index": 1,     # 0 = David, 1 = Zira (current) — run tests/test_tts.py to list voices
+}
+
+# ── Piper TTS (Week 2 upgrade) ───────────────────────────────
+PIPER_CONFIG = {
+    "piper_exe":   r"D:\TARA\piper_bin\piper\piper.exe",
+    "model_path":  r"D:\TARA\voices\en_US-hfc_female-medium.onnx",
+    "sample_rate": 22050,    # hfc-female-medium outputs 22050 Hz audio
 }

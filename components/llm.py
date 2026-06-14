@@ -14,6 +14,7 @@ class LanguageModel:
         self.config             = config
         self.conversation_history: list[dict] = []
         self._test_connection()
+        self.warm_up()  # Preload the model to reduce first-response latency
 
     # ── Startup Check ────────────────────────────────────────
 
@@ -97,3 +98,17 @@ class LanguageModel:
         """Wipe conversation memory. Call when starting a new topic."""
         self.conversation_history = []
         print("[LLM] Conversation history cleared.")
+
+    def warm_up(self):
+        """
+        Send a throwaway request so Ollama loads the model
+        before the user speaks their first real message.
+        """
+        print("[LLM] Warming up model...")
+        start = time.time()
+        ollama.chat(
+            model=self.config["model"],
+            messages=[{"role": "user", "content": "hi"}],
+            options={"num_ctx": self.config.get("num_ctx", 2048)}
+        )
+        print(f"[LLM] Model warm ✓  ({time.time() - start:.1f}s load time)")

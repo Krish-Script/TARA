@@ -1,90 +1,88 @@
 """
-components/tts.py — Text-to-Speech Component
-============================================
-Uses pyttsx3 with Windows SAPI5 (built-in Windows speech engine).
+components/tts.py — Text-to-Speech Component (Week 2: Piper Binary)
+====================================================================
+Uses piper.exe directly via subprocess — bypasses all Python package
+compatibility issues on Windows.
+
+How it works:
+  1. Text is piped into piper.exe as stdin
+  2. piper.exe outputs raw PCM audio bytes to stdout
+  3. PyAudio plays the raw bytes through speakers
+
+Why subprocess instead of the Python piper package?
+  - piper-phonemize (required by pip piper-tts) has no Windows wheels
+  - The OHF fork (1.4.2) has an incompatible API
+  - The binary approach works identically on all platforms
 """
 
+import io
+import subprocess
 import time
+import wave
 
-import pyttsx3
+import pyaudio
 
 
 class TextToSpeech:
     def __init__(self, config: dict):
         self.config = config
-        self.engine = None
-        self._init_engine()
+        self._verify_setup()
 
-    # ── Initialisation ───────────────────────────────────────
+    def _verify_setup(self):
+        """Check piper.exe and model file exist before first use."""
+        import os
+        exe   = self.config["piper_exe"]
+        model = self.config["model_path"]
 
-    def _init_engine(self):
-        """Set up the TTS engine with your configured settings."""
-        self.engine = pyttsx3.init()
-
-        # Apply settings from config
-        self.engine.setProperty("rate",   self.config.get("rate",   175))
-        self.engine.setProperty("volume", self.config.get("volume", 1.0))
-
-        # Pick a voice
-        voices      = self.engine.getProperty("voices")
-        voice_index = self.config.get("voice_index", 1)
-
-        if voices:
-            # Clamp index so it never crashes if voice_index is too high
-            idx = min(voice_index, len(voices) - 1) # type: ignore
-            self.engine.setProperty("voice", voices[idx].id) # type: ignore
-            print(f"[TTS] Using voice [{idx}]: {voices[idx].name} ✓") # type: ignore
+        if not os.path.exists(exe):
+            print(f"[TTS] ❌ piper.exe not found at: {exe}")
+            print("[TTS]    Download from: https://github.com/rhasspy/piper/releases/latest")
+        elif not os.path.exists(model):
+            print(f"[TTS] ❌ Voice model not found at: {model}")
+            print("[TTS]    Download en_US-lessac-medium.onnx from HuggingFace")
         else:
-            print("[TTS] ⚠  No voices found. Check Windows speech settings.")
-
-    # ── Speaking ─────────────────────────────────────────────
+            print("[TTS] Piper binary + voice model ready ✓")
 
     def speak(self, text: str) -> float:
         """
-        Convert text to speech and play it through speakers.
-        This call BLOCKS until speaking is finished.
-        Returns how long speaking took in seconds.
-
-        NOTE — Windows pyttsx3 bug workaround:
-          pyttsx3.init() does NOT create a new engine each time — it
-          caches one internally and hands back the same broken object,
-          which is why only the FIRST speak() call ever produces audio.
-
-          The fix: clear pyttsx3's internal engine cache before calling
-          init(), forcing it to build a genuinely new SAPI5 driver.
-          This adds ~0.1-0.2s overhead per call but is fully reliable.
+        Synthesize text to speech and play it.
+        Returns time taken in seconds.
         """
         if not text:
             return 0.0
 
         start = time.time()
 
-        # Force pyttsx3 to forget its cached engine so init() below
-        # is forced to construct a brand new one.
-        pyttsx3._activeEngines.clear()
+        # ── Step 1: Run piper.exe ─────────────────────────────
+        # Pipe text in → get raw PCM int16 audio bytes out
+        result = subprocess.run(
+            [
+                self.config["piper_exe"],
+                "--model",       self.config["model_path"],
+                "--output-raw",  # raw PCM bytes on stdout, no wav header
+            ],
+            input=text.encode("utf-8"),
+            capture_output=True,
+        )
 
-        engine = pyttsx3.init()
-        engine.setProperty("rate",   self.config.get("rate",   175))
-        engine.setProperty("volume", self.config.get("volume", 1.0))
+        if result.returncode != 0:
+            print(f"[TTS] ❌ Piper error: {result.stderr.decode()}")
+            return 0.0
 
-        voices      = engine.getProperty("voices")
-        voice_index = self.config.get("voice_index", 1)
-        if voices:
-            idx = min(voice_index, len(voices) - 1) # type: ignore
-            engine.setProperty("voice", voices[idx].id) # type: ignore
+        raw_audio   = result.stdout
+        sample_rate = self.config.get("sample_rate", 22050)
 
-        engine.say(text)
-        engine.runAndWait()        # blocks here until audio finishes
+        # ── Step 2: Play audio via PyAudio ───────────────────
+        p      = pyaudio.PyAudio()
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=sample_rate,
+            output=True,
+        )
+        stream.write(raw_audio)
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 
         return time.time() - start
-
-    # ── Utility ──────────────────────────────────────────────
-
-    def list_voices(self):
-        """Print all available Windows TTS voices. Use this to pick one."""
-        voices = self.engine.getProperty("voices") # type: ignore
-        print(f"\n[TTS] Found {len(voices)} available voice(s):") # type: ignore
-        for i, voice in enumerate(voices): # type: ignore
-            print(f"  [{i}] {voice.name}")
-            print(f"       {voice.id}")
-        print("\nTo change voice: set 'voice_index' in config.py\n")

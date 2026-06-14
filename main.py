@@ -20,8 +20,7 @@ import time
 from components.stt import SpeechToText
 from components.llm import LanguageModel
 from components.tts import TextToSpeech
-from config import STT_CONFIG, AUDIO_CONFIG, LLM_CONFIG, TTS_CONFIG
-
+from config import STT_CONFIG, AUDIO_CONFIG, LLM_CONFIG, PIPER_CONFIG
 
 class TARA:
     """
@@ -37,7 +36,7 @@ class TARA:
         stt_config = {**STT_CONFIG, **AUDIO_CONFIG}
 
         self.stt = SpeechToText(stt_config)   # CPU — Whisper
-        self.tts = TextToSpeech(TTS_CONFIG)    # CPU — pyttsx3
+        self.tts = TextToSpeech(PIPER_CONFIG)    # CPU — Piper
         self.llm = LanguageModel(LLM_CONFIG)   # GPU — Ollama
 
         # Latency tracking for the Week 1 baseline report
@@ -49,6 +48,7 @@ class TARA:
         }
 
         print("\n✅ All components loaded. TARA is ready!\n")
+
 
     # ── Main Loop ────────────────────────────────────────────
 
@@ -145,7 +145,7 @@ class TARA:
         print(f"  -------------|--------|--------|--------")
         print(f"  STT (Whisper)| {avg(self.stats['stt']):.2f}s  | {mn(self.stats['stt']):.2f}s  | {mx(self.stats['stt']):.2f}s")
         print(f"  LLM (Ollama) | {avg(self.stats['llm']):.2f}s  | {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
-        print(f"  TTS (pyttsx3)| {avg(self.stats['tts']):.2f}s  | {mn(self.stats['tts']):.2f}s  | {mx(self.stats['tts']):.2f}s")
+        print(f"  TTS (piper)  | {avg(self.stats['tts']):.2f}s  | {mn(self.stats['tts']):.2f}s  | {mx(self.stats['tts']):.2f}s")
         total = avg(self.stats["stt"]) + avg(self.stats["llm"]) + avg(self.stats["tts"])
         print(f"  -------------|--------|--------|--------")
         print(f"  TOTAL (avg)  | {total:.2f}s")

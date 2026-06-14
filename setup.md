@@ -252,9 +252,9 @@ Expected peak VRAM: **~2.2 GB / 4 GB** — you have 1.8 GB headroom ✅
 
 ## What to Record for Week 1 Review (Friday)
 
-- [ ] Average STT latency: _______s
-- [ ] Average LLM latency: _______s
-- [ ] Average TTS latency: _______s
-- [ ] Peak VRAM usage: _______GB
-- [ ] Any error patterns you noticed
+- [ ] Average STT latency: 0.70s
+- [ ] Average LLM latency: 0.68s
+- [ ] Average TTS latency: 3 phrases 4.95s
+- [ ] Peak VRAM usage: 2.5GB
+- [ ] Any error patterns you noticed - Instead of pyttsx I would have used piper TTS, `I would have made the same mistake so that I can learn from it.`
 - [ ] Screenshot of the baseline report from main.py

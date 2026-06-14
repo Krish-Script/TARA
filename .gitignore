@@ -29,3 +29,10 @@ Thumbs.db
 *.bin
 *.safetensors
 models/
+
+# Piper TTS — binary and voice models (large files, download separately)
+# See SETUP.md for download instructions
+piper_bin/
+voices/
+*.onnx
+*.onnx.json
