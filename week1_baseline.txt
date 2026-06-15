@@ -8,9 +8,10 @@ Day 2 — STT (Whisper, CPU, base model, int8)
   Average:  0.70s 
 
 Day 3 — LLM (llama3.2:3b, Ollama, GPU)
-  Cold start (first load):     80.82s   ← one-time, happens once per session
+  Cold start (first load):     80.82s   ← one-time(disk-to-VRAM)
+  Cold start (first run):       7.30s   ← all-time(RAM→VRAM)
   Warm inference avg:           0.68s   ← real baseline
-  VRAM usage:                   2.4-2.5 GB
+  VRAM usage:                   2.2-2.5 GB
 
 Day 4 — TTS (pyttsx3, voice = Zira)
   Phrase 1: 5.66s

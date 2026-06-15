@@ -25,8 +25,9 @@ AUDIO_CONFIG = {
 
 # ── Language Model (Ollama + LLaMA) ─────────────────────────
 LLM_CONFIG = {
-    "model": "llama3.2:3b",   # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
-                               # upgrade to llama3.2:7b in Week 2 if VRAM allows
+    "model": "llama3.2:3b",     # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
+                                # upgrade to llama3.2:7b in Week 2 if VRAM allows
+    "keep_alive": "30m",        # keep the model loaded in memory for 30 minutes of inactivity
     "system_prompt": (
         "Your name is TARA. You are an offline voice assistant. "
         "Respond in ONE short sentence only. Never more. No markdown. No filler. "

@@ -67,6 +67,7 @@ class LanguageModel:
         response = ollama.chat(
             model=self.config["model"],
             messages=messages,
+            keep_alive=self.config.get("keep_alive", "30m"),
             options={
                 "temperature": self.config.get("temperature", 0.7),
                 "num_ctx":     self.config.get("num_ctx",     2048),
