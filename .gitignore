@@ -7,6 +7,7 @@ env/
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyc
 
 # Temporary audio files created during recording
 temp_recording.wav
@@ -36,3 +37,7 @@ piper_bin/
 voices/
 *.onnx
 *.onnx.json
+
+# SQLite database
+*.db
+*.sqlite3
