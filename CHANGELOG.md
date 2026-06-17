@@ -6,87 +6,6 @@ The format is based on **Keep a Changelog** and the project follows **Semantic V
 
 ---
 
-## [Unreleased]
-
-### Planned
-
-* Integrate SQLite memory with conversation pipeline
-* Automatic long-term memory extraction
-* Context-aware prompt injection
-* Semantic memory retrieval
-* Vector database integration
-* Tool calling framework
-* Vision module
-* GUI application
-
----
-
-## [0.3.0] - 2026-06-16
-
-### Added
-
-* Introduced SQLite-based persistent memory system.
-* Created dedicated `MemoryStore` class.
-* Automatic database initialization.
-* Conversation history storage.
-* User fact storage.
-* Session ID generation utilities.
-* Prompt context builder.
-* Helper methods for memory extraction.
-* Database reset and cleanup utilities.
-
-### Database
-
-* Added `tara_memory.db`.
-* Added `conversations` table.
-* Added `user_facts` table.
-* Added indexes for optimized lookups.
-
-### Testing
-
-* Verified database creation.
-* Verified conversation storage.
-* Verified conversation retrieval.
-* Verified persistent fact storage.
-* Verified fact retrieval.
-
-### Documentation
-
-* Added Week 3 development report.
-* Added project roadmap.
-* Improved project documentation structure.
-
----
-
-## [0.2.0] - 2026-06-12
-
-### Added
-
-* Migrated Text-to-Speech engine from pyttsx3 to Piper.
-* Integrated `en_US-hfc_female-medium` voice.
-* Improved prompt engineering using few-shot prompting.
-
-### Improved
-
-* Reduced speech synthesis latency.
-* Improved response naturalness.
-* Reduced total end-to-end latency by approximately **47%**.
-
-### Performance
-
-| Component | Before  | After  |
-| --------- | ------- | ------ |
-| STT       | 0.62 s  | 0.59 s |
-| LLM       | 1.41 s  | 1.05 s |
-| TTS       | 11.23 s | 5.42 s |
-| Total     | 13.26 s | 7.06 s |
-
-### Documentation
-
-* Added Week 2 report.
-
----
-
 ## [0.1.0] - 2026-06-04
 
 ### Added
@@ -130,14 +49,132 @@ The format is based on **Keep a Changelog** and the project follows **Semantic V
 
 ---
 
+## [0.2.0] - 2026-06-12
+
+### Added
+
+* Migrated Text-to-Speech engine from pyttsx3 to Piper.
+* Integrated `en_US-hfc_female-medium` voice.
+* Improved prompt engineering using few-shot prompting.
+
+### Improved
+
+* Reduced speech synthesis latency.
+* Improved response naturalness.
+* Reduced total end-to-end latency by approximately **47%**.
+
+### Performance
+
+| Component | Before  | After  |
+| --------- | ------- | ------ |
+| STT       | 0.62 s  | 0.59 s |
+| LLM       | 1.41 s  | 1.05 s |
+| TTS       | 11.23 s | 5.42 s |
+| Total     | 13.26 s | 7.06 s |
+
+### Documentation
+
+* Added Week 2 report.
+
+---
+
+## [0.3.0] - 2026-06-16
+
+### Added(Task 1) - 2026-06-16
+
+* Introduced SQLite-based persistent memory system.
+* Created dedicated `MemoryStore` class.
+* Automatic database initialization.
+* Conversation history storage.
+* User fact storage.
+* Session ID generation utilities.
+* Prompt context builder.
+* Helper methods for memory extraction.
+* Database reset and cleanup utilities.
+
+#### Database
+
+* Added `tara_memory.db`.
+* Added `conversations` table.
+* Added `user_facts` table.
+* Added indexes for optimized lookups.
+
+#### Testing
+
+* Verified database creation.
+* Verified conversation storage.
+* Verified conversation retrieval.
+* Verified persistent fact storage.
+* Verified fact retrieval.
+
+
+
+### Added(Task 2) - 2026-06-17
+
+* Implemented SQLite-backed persistent memory.
+* Added MemoryStore component.
+* Automatic SQLite database creation.
+* Conversation history persistence.
+* Persistent user fact storage.
+* Session ID generation.
+* Prompt context builder.
+* Memory extraction helpers.
+* Memory statistics utility.
+* Automatic conversation saving.
+* Automatic context injection into the language model.
+* Support for explicit "Remember..." commands.
+
+#### Integrated
+
+* Connected persistent memory with the main application loop.
+* Connected SQLite memory to the language model prompt.
+* Enabled memory persistence across application restarts.
+
+#### Testing
+
+* Database initialization.
+* Conversation storage and retrieval.
+* User fact storage and retrieval.
+* Automatic prompt injection.
+* Memory persistence across sessions.
+* End-to-end conversation workflow.
+
+---
+
+### Documentation
+
+* Added Week 3(Task 1) development report.
+* Added project roadmap.
+* Added professional changelog.
+* Improved project documentation structure.
+
+---
+
+## [Unreleased]
+
+### Planned
+
+* Integrate SQLite memory with conversation pipeline
+* Automatic long-term memory extraction
+* Context-aware prompt injection
+* Semantic memory retrieval
+* Vector database integration
+* Tool calling framework
+* Vision module
+* GUI application
+
+
+
+---
+
 ## Version History
 
-| Version    | Description                                    | Status      |
-| ---------- | ---------------------------------------------- | ----------- |
-| 0.1.0      | Initial offline assistant                      | Released    |
-| 0.2.0      | Piper integration and performance improvements | Released    |
-| 0.3.0      | SQLite memory system                           | Released    |
-| Unreleased | Memory integration, RAG, automation, vision    | In Progress |
+| Version    | Description                                                       | Status      |
+| ---------- | ----------------------------------------------------------------- | ----------- |
+| 0.1.0      | Initial offline assistant                                         | Released    |
+| 0.2.0      | Piper integration and performance improvements                    | Released    |
+| 0.3.0      | SQLite memory system, Memory integration, RAG, automation, vision | In Progress |
+
 
 ---
 

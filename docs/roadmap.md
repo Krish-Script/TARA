@@ -2,34 +2,34 @@
 
 ## ✅ Week 1 (Completed)
 
-- Voice Pipeline
-- STT
-- LLM
-- TTS
+- Test microphone + transcription
+- Test the AI model
+- Test voice output
+- Full voice loop
 
 ---
 
 ## ✅ Week 2 (Completed)
 
-- Faster TTS
-- Better prompting
-- Performance optimization
+- Install Piper + sounddevice, download voice model
+- Write isolated tests/test_piper.py and verify audio
+- Rewrite components/tts.py to use Piper
+- Test full pipeline with Piper, record new baseline
+- Tighten system prompt — force shorter responses
+- Add model warm-up call at startup to kill 80s cold start
+- Try 3 different Piper voice models, pick the best
 
 ---
 
 ## 🚧 Week 3 (In Progress)
 
-- SQLite Memory
-- Conversation storage
-- User facts
-
----
-
-## Week 4
-
-- RAG
-- Semantic Memory
-- Vector Database
+- keep_alive cold start fix
+- SQLite memory schema + storage
+- Cross-session context injection
+- Explicit user fact memory
+- Orchestrator class refactor
+- TTS measurement
+- Chunked TTS streaming
 
 ---
 

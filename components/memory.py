@@ -375,6 +375,14 @@ class MemoryStore:
         self.clear_all_turns()
         self.clear_facts()
 
+    def print_stats(self) -> None:
+        """Print summary stats about stored conversations and facts."""
+        with self._connect() as conn:
+            convo_count = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+            fact_count = conn.execute("SELECT COUNT(*) FROM user_facts").fetchone()[0]
+
+        print(f"[MemoryStore] {convo_count} conversation turns, {fact_count} user facts stored.")
+
 
 __all__ = [
     "ConversationTurn",

@@ -3,7 +3,7 @@
 # Change settings here without touching any other file.
 # ============================================================
 
-# ── Speech-to-Text (Whisper) ─────────────────────────────────
+# ── Speech-to-Text (Whisper) (Week 1) ──────────────────────
 STT_CONFIG = {
     "model_size":   "base",   # tiny=fastest, base=best balance, small=most accurate
     "device":       "cpu",    # ALWAYS cpu — saves 4GB VRAM entirely for LLM
@@ -12,7 +12,7 @@ STT_CONFIG = {
     "beam_size":    5,        # higher = more accurate, slower
 }
 
-# ── Audio Recording ──────────────────────────────────────────
+# ── Audio Recording (Week 1) ────────────────────────────────
 AUDIO_CONFIG = {
     "sample_rate":       16000,  # Whisper requires exactly 16 kHz
     "channels":          1,      # mono microphone input
@@ -23,7 +23,7 @@ AUDIO_CONFIG = {
     "max_duration":      30,     # safety cap: stop after 30s no matter what
 }
 
-# ── Language Model (Ollama + LLaMA) ─────────────────────────
+# ── Language Model (Ollama + LLaMA) (Week 1) ──────────────────────────
 LLM_CONFIG = {
     "model": "llama3.2:3b",     # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
                                 # upgrade to llama3.2:7b in Week 2 if VRAM allows
@@ -44,7 +44,7 @@ LLM_CONFIG = {
     "max_history": 10,    # max conversation turns to remember (each = 2 messages)
 }
 
-# ── Text-to-Speech (pyttsx3 / Windows SAPI5) ────────────────
+# ── Text-to-Speech (pyttsx3 / Windows SAPI5) (Week 1) ────────────────
 TTS_CONFIG = {
     "rate":        175,   # words per minute (default 200, slower = clearer)
     "volume":      1.0,   # 0.0 to 1.0
@@ -56,4 +56,11 @@ PIPER_CONFIG = {
     "piper_exe":   r"D:\TARA\piper_bin\piper\piper.exe",
     "model_path":  r"D:\TARA\voices\en_US-hfc_female-medium.onnx",
     "sample_rate": 22050,    # hfc-female-medium outputs 22050 Hz audio
+}
+
+# ── Memory (SQLite) (Week 3) ──────────────────────────────
+MEMORY_CONFIG = {
+    "db_path":       r"D:\TARA\tara_memory.db",
+    "context_turns": 6,     # recent turns to inject per session
+    "fact_limit":    10,    # max facts to inject
 }

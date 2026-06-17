@@ -39,7 +39,7 @@ class LanguageModel:
 
     # ── Response Generation ──────────────────────────────────
 
-    def generate(self, user_message: str) -> tuple[str, float]:
+    def generate(self, user_message: str, memory_context: str = "") -> tuple[str, float]:
         """
         Send a message to the LLM and get a response.
         Automatically keeps track of conversation history so
@@ -53,14 +53,17 @@ class LanguageModel:
             "content": user_message,
         })
 
+        # Build system prompt — inject memory context if it exists
+        system_content = self.config["system_prompt"]
+        if memory_context:
+            system_content = system_content + "\n\n" + memory_context
+
         # Build the full message list:
         #   [system prompt]  ← sets the TARA persona
         #   [user turn 1]
         #   [assistant turn 1]
         #   [user turn 2]     ← current message
-        messages = [
-            {"role": "system", "content": self.config["system_prompt"]}
-        ] + self.conversation_history
+        messages = [{"role": "system", "content": system_content}] + self.conversation_history
 
         start = time.time()
 

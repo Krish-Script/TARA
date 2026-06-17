@@ -20,7 +20,8 @@ import time
 from components.stt import SpeechToText
 from components.llm import LanguageModel
 from components.tts import TextToSpeech
-from config import STT_CONFIG, AUDIO_CONFIG, LLM_CONFIG, PIPER_CONFIG
+from components.memory import MemoryStore, create_session_id
+from config import STT_CONFIG, AUDIO_CONFIG, LLM_CONFIG, PIPER_CONFIG, MEMORY_CONFIG
 
 class TARA:
     """
@@ -38,6 +39,10 @@ class TARA:
         self.stt = SpeechToText(stt_config)   # CPU — Whisper
         self.tts = TextToSpeech(PIPER_CONFIG)    # CPU — Piper
         self.llm = LanguageModel(LLM_CONFIG)   # GPU — Ollama
+
+        self.memory     = MemoryStore(MEMORY_CONFIG["db_path"])
+        self.session_id = create_session_id()
+        self.memory.print_stats()
 
         # Latency tracking for the Week 1 baseline report
         self.stats = {
@@ -72,7 +77,7 @@ class TARA:
 
         while True:
             try:
-                # ── Step 1 & 2: Listen + Transcribe ─────────
+                # ── Listen + Transcribe ─────────
                 print("[Waiting for speech...]")
                 text, stt_latency = self.stt.listen_and_transcribe()
 
@@ -95,19 +100,39 @@ class TARA:
                     self.llm.clear_history()
                     self.tts.speak("Memory cleared. Starting fresh.")
                     continue
+                
+                # Remember commands
+                if self.memory.remember_if_requested(text):
+                    self.tts.speak("Got it, I'll remember that.")
+                    continue
 
-                # ── Step 3: LLM Response ─────────────────────
+                # Loop back and listen for the next command...
+                memory_context = self.memory.build_context(
+                    session_id=None,
+                    recent_turns=MEMORY_CONFIG["context_turns"],
+                    fact_limit=MEMORY_CONFIG["fact_limit"],
+                )
+
+                # ── LLM Response ─────────────────────
                 print("[Thinking...]")
-                response, llm_latency = self.llm.generate(text)
+                response, llm_latency = self.llm.generate(text, memory_context=memory_context)
 
                 print(f"\n[TARA] {response}")
                 print(f"       LLM latency: {llm_latency:.2f}s")
                 self.stats["llm"].append(llm_latency)
 
-                # ── Step 4: Speak Response ───────────────────
+                # ── Speak Response ───────────────────
                 tts_latency = self.tts.speak(response)
                 print(f"       TTS latency: {tts_latency:.2f}s\n")
                 self.stats["tts"].append(tts_latency)
+
+                self.memory.save_turn(
+                    session_id=self.session_id,
+                    user_message=text,
+                    assistant_response=response,
+                )
+
+                
 
             except KeyboardInterrupt:
                 # Ctrl+C pressed — graceful shutdown
@@ -124,10 +149,7 @@ class TARA:
     # ── Reporting ────────────────────────────────────────────
 
     def _print_baseline_report(self):
-        """
-        Print the Week 1 performance baseline.
-        Screenshot this output — it feeds into your Week 2 planning.
-        """
+
         def avg(lst): return sum(lst) / len(lst) if lst else 0.0
         def mn(lst):  return min(lst)             if lst else 0.0
         def mx(lst):  return max(lst)             if lst else 0.0
@@ -136,7 +158,7 @@ class TARA:
         turns = len(self.stats["llm"])
 
         print("\n" + "=" * 55)
-        print("  WEEK 1 BASELINE PERFORMANCE REPORT")
+        print("  WEEK 3 BASELINE PERFORMANCE REPORT")
         print("=" * 55)
         print(f"  Session duration : {session_mins:.1f} min")
         print(f"  Total turns      : {turns}")
@@ -151,8 +173,6 @@ class TARA:
         print(f"  TOTAL (avg)  | {total:.2f}s")
         print("=" * 55)
         print()
-        print("  ⭐ Save / screenshot these numbers!")
-        print("  They are your Week 2 optimization target.")
         print("=" * 55 + "\n")
 
     # ── Banner ───────────────────────────────────────────────
@@ -162,7 +182,7 @@ class TARA:
         print()
         print("=" * 55)
         print("  ╔═══════════════════════════════╗")
-        print("  ║   T A R A  v0.1  — Week 1     ║")
+        print("  ║   T A R A  v0.3.2  — Week 3   ║")
         print("  ║   Offline Voice AI Assistant  ║")
         print("  ╚═══════════════════════════════╝")
         print("=" * 55)
