@@ -1,207 +1,142 @@
 # Changelog
 
-All notable changes to **TARA (Totally Autonomous Responsive Assistant)** will be documented in this file.
+All notable changes to **TARA (Totally Autonomous Responsive Assistant)** are documented here.
 
-The format is based on **Keep a Changelog** and the project follows **Semantic Versioning (SemVer)**.
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)  
+Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
-## [0.1.0] - 2026-06-04
+## [Unreleased]
+
+### Planned — Week 3 remaining
+- Chunked TTS streaming (TTFS target: <0.6s)
+- TTFS measurement and reporting
+
+### Planned — Week 4
+- Intent detection layer
+- Tool execution framework
+- System monitoring tool (psutil)
+- Basic file management tool
+
+---
+
+## [0.4.0] - 2026-06-20
+
+### Changed
+- Extracted all pipeline logic from `main.py` into a dedicated `Orchestrator` class (`components/orchestrator.py`)
+- `main.py` now owns only component initialization and the audio capture loop (~70 lines, down from ~130)
+- Replaced `if/elif` command chain with a command registry pattern — adding new commands requires no structural changes
+- Moved intent detection for memory commands from `MemoryStore` to `Orchestrator` — `MemoryStore` is now a pure storage layer
+
+### Architecture
+- `Orchestrator._build_command_registry()` — single location for all voice command registration
+- `Orchestrator._run_pipeline()` — seven named pipeline stages with explicit placeholders for Week 4 (intent detection, tool execution) and Week 5 (RAG retrieval)
+- `_say()` helper enforces print+speak consistency across all command handlers
+
+---
+
+## [0.3.0] - 2026-06-17
 
 ### Added
+- SQLite-backed persistent memory system (`components/memory.py`)
+- `conversations` table — stores every exchange with session ID, turn index, and timestamp
+- `user_facts` table — stores permanent user-provided facts across all sessions
+- `MemoryStore` class with WAL journal mode, connection-per-operation pattern, and upsert deduplication
+- Session ID generation (`create_session_id()`)
+- Memory context builder for LLM prompt injection
+- Automatic conversation persistence after every pipeline turn
+- Voice command: "Remember that [fact]" — extracts and stores user facts permanently
+- Voice command: "What do you remember about me?" — recalls all stored facts aloud
+- Voice command: "Clear memory" — resets LLM conversation history (stored facts preserved)
+- `_say()` helper method — enforces print+speak consistency, preventing silent responses
 
-* Initial project structure.
-* Offline Speech-to-Text using Faster-Whisper.
-* Local LLM using Ollama with Llama 3.2:3B.
-* Offline Text-to-Speech using pyttsx3.
-* Wake-free conversational pipeline.
-* Modular component architecture.
-* Configuration management.
-* End-to-end voice interaction.
+### Fixed
+- Cold start latency: `keep_alive="30m"` passed as top-level `ollama.chat()` parameter (previously placed inside `options` where Ollama silently ignores it). Model now stays loaded in VRAM for 30 minutes of inactivity
+- Missing terminal output for all command branches (remember, recall, clear, goodbye)
+- `response` variable scope bug in recall branch — response was spoken but never assigned, causing empty print
 
 ### Performance
 
-#### Speech-to-Text
+| Metric | Week 2 | Week 3 | Change |
+|--------|--------|--------|--------|
+| STT avg | 0.59s | 0.62s | +0.03s |
+| LLM avg | 1.05s | 1.04s | stable |
+| TTS avg | 5.42s | 5.74s | +0.32s |
+| Total avg | 7.06s | 7.35s | +0.29s |
+| Cold start | ~7–80s | eliminated | ✅ |
 
-* Average transcription latency: **0.70 s**
-
-#### Large Language Model
-
-* Warm inference: **0.68 s**
-* GPU VRAM usage: **2.2–2.5 GB**
-
-#### Text-to-Speech
-
-* Average synthesis time: **4.95 s**
-
-#### End-to-End
-
-* Average STT: **0.62 s**
-* Average LLM: **1.41 s**
-* Average TTS: **11.23 s**
-* Time-to-first-response: **~2.0 s**
-
-### Fixed
-
-* Resolved pyttsx3 speech interruption issue.
-* Fixed assistant identity consistency (TARA).
-* Improved application stability during long conversations.
+The +0.29s increase reflects memory context injection cost — recent turns and user facts loaded into every LLM request.
 
 ---
 
 ## [0.2.0] - 2026-06-12
 
 ### Added
+- Piper TTS integration via standalone binary (`piper.exe`) — bypasses Python package compatibility issues on Windows
+- `en_US-hfc_female-medium` voice model (rhasspy, Hugging Face)
+- Few-shot prompting — system prompt now demonstrates correct response format via examples rather than rules
+- PyAudio-based raw PCM playback for Piper output
 
-* Migrated Text-to-Speech engine from pyttsx3 to Piper.
-* Integrated `en_US-hfc_female-medium` voice.
-* Improved prompt engineering using few-shot prompting.
-
-### Improved
-
-* Reduced speech synthesis latency.
-* Improved response naturalness.
-* Reduced total end-to-end latency by approximately **47%**.
+### Changed
+- Replaced pyttsx3 (Windows SAPI5) with Piper TTS for noticeably more natural voice output
+- System prompt restructured from instruction-rules to few-shot examples — more effective on llama3.2:3b
 
 ### Performance
 
-| Component | Before  | After  |
-| --------- | ------- | ------ |
-| STT       | 0.62 s  | 0.59 s |
-| LLM       | 1.41 s  | 1.05 s |
-| TTS       | 11.23 s | 5.42 s |
-| Total     | 13.26 s | 7.06 s |
+| Component | Before (0.1.0) | After (0.2.0) | Change |
+|-----------|----------------|---------------|--------|
+| STT avg | 0.62s | 0.59s | -0.03s |
+| LLM avg | 1.41s | 1.05s | -0.36s |
+| TTS avg | 11.23s | 5.42s | -5.81s |
+| **Total** | **13.27s** | **7.06s** | **-47%** |
 
-### Documentation
-
-* Added Week 2 report.
+TTS improvement came from two sources: Piper generates audio faster than pyttsx3 synthesised it, and shorter responses (from few-shot prompt) reduced audio duration.
 
 ---
 
-## [0.3.0] - 2026-06-16
+## [0.1.0] - 2026-06-04
 
-### Added(Task 1) - 2026-06-16
+### Added
+- Project structure and virtual environment setup
+- Offline Speech-to-Text via faster-whisper (base model, int8, CPU)
+- Local LLM inference via Ollama with llama3.2:3b (GPU)
+- Offline Text-to-Speech via pyttsx3 (Windows SAPI5, Zira voice)
+- End-to-end voice pipeline: microphone → STT → LLM → TTS → speaker
+- Silence-detection based audio recording (PyAudio)
+- Modular component architecture (stt.py, llm.py, tts.py)
+- Isolated test scripts per component (tests/)
+- Session performance baseline reporting
 
-* Introduced SQLite-based persistent memory system.
-* Created dedicated `MemoryStore` class.
-* Automatic database initialization.
-* Conversation history storage.
-* User fact storage.
-* Session ID generation utilities.
-* Prompt context builder.
-* Helper methods for memory extraction.
-* Database reset and cleanup utilities.
+### Fixed
+- pyttsx3 engine singleton bug — `_activeEngines.clear()` before each `init()` call forces a fresh COM object, resolving silent-after-first-call behaviour
+- Assistant identity: system prompt corrected from ARIA to TARA after find-and-replace missed the prompt string
 
-#### Database
+### Performance
 
-* Added `tara_memory.db`.
-* Added `conversations` table.
-* Added `user_facts` table.
-* Added indexes for optimized lookups.
-
-#### Testing
-
-* Verified database creation.
-* Verified conversation storage.
-* Verified conversation retrieval.
-* Verified persistent fact storage.
-* Verified fact retrieval.
-
-
-
-### Added(Task 2) - 2026-06-17
-
-* Implemented SQLite-backed persistent memory.
-* Added MemoryStore component.
-* Automatic SQLite database creation.
-* Conversation history persistence.
-* Persistent user fact storage.
-* Session ID generation.
-* Prompt context builder.
-* Memory extraction helpers.
-* Memory statistics utility.
-* Automatic conversation saving.
-* Automatic context injection into the language model.
-* Support for explicit "Remember..." commands.
-
-#### Integrated
-
-* Connected persistent memory with the main application loop.
-* Connected SQLite memory to the language model prompt.
-* Enabled memory persistence across application restarts.
-
-#### Testing
-
-* Database initialization.
-* Conversation storage and retrieval.
-* User fact storage and retrieval.
-* Automatic prompt injection.
-* Memory persistence across sessions.
-* End-to-end conversation workflow.
-
----
-
-### Documentation
-
-* Added Week 3(Task 1) development report.
-* Added project roadmap.
-* Added professional changelog.
-* Improved project documentation structure.
-
----
-
-## [Unreleased]
-
-### Planned
-
-* Integrate SQLite memory with conversation pipeline
-* Automatic long-term memory extraction
-* Context-aware prompt injection
-* Semantic memory retrieval
-* Vector database integration
-* Tool calling framework
-* Vision module
-* GUI application
-
-
+| Component | Result |
+|-----------|--------|
+| STT avg latency | 0.70s |
+| LLM warm inference | 0.68s |
+| LLM cold start (disk→VRAM) | 80.82s |
+| TTS avg (short phrases) | 4.95s |
+| TTS avg (full responses) | 11.23s |
+| Time-to-first-response | ~2.0s |
+| VRAM steady-state | 2.2GB |
 
 ---
 
 ## Version History
 
-| Version    | Description                                                       | Status      |
-| ---------- | ----------------------------------------------------------------- | ----------- |
-| 0.1.0      | Initial offline assistant                                         | Released    |
-| 0.2.0      | Piper integration and performance improvements                    | Released    |
-| 0.3.0      | SQLite memory system, Memory integration, RAG, automation, vision | In Progress |
-
-
----
-
-## Project Statistics
-
-Current Features
-
-* Offline Speech Recognition
-* Local Large Language Model
-* Offline Speech Synthesis
-* Modular Architecture
-* SQLite Memory Backend
-* Persistent User Facts
-* Conversation History
-* Session Management
-
-Current Technology Stack
-
-* Python
-* Faster-Whisper
-* Ollama
-* Llama 3.2:3B
-* Piper TTS
-* SQLite
-* Git
-* GitHub
+| Version | Description | Sprint | Status |
+|---------|-------------|--------|--------|
+| 0.1.0 | Offline voice pipeline | Week 1 | ✅ Released |
+| 0.2.0 | Piper TTS + few-shot prompting | Week 2 | ✅ Released |
+| 0.3.0 | SQLite memory + cold start fix | Week 3 | ✅ Released |
+| 0.4.0 | Orchestrator refactor | Week 3 | ✅ Released |
+| 0.5.0 | Chunked TTS streaming | Week 3 | ⏳ Planned |
+| 0.6.0 | Agentic tool framework | Week 4 | ⏳ Planned |
 
 ---
 
-Maintained by **Krishnendu Mandal** as part of the **TARA** project.
+*Maintained by **Krishnendu Mandal** — TARA Project*

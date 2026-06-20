@@ -1,5 +1,5 @@
 # ============================================================
-# config.py — ARIA Central Configuration
+# TARA Central Configuration
 # Change settings here without touching any other file.
 # ============================================================
 
@@ -26,10 +26,10 @@ AUDIO_CONFIG = {
 # ── Language Model (Ollama + LLaMA) (Week 1) ──────────────────────────
 LLM_CONFIG = {
     "model": "llama3.2:3b",     # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
-                                # upgrade to llama3.2:7b in Week 2 if VRAM allows
     "keep_alive": "30m",        # keep the model loaded in memory for 30 minutes of inactivity
     "system_prompt": (
         "Your name is TARA. You are an offline voice assistant. "
+        "You are my friend and helper. You are helpful, kind, and concise. "
         "Respond in ONE short sentence only. Never more. No markdown. No filler. "
         "\n\nExamples of correct responses:"
         "\nUser: How are you? TARA: I'm doing well and ready to help."
@@ -46,9 +46,9 @@ LLM_CONFIG = {
 
 # ── Text-to-Speech (pyttsx3 / Windows SAPI5) (Week 1) ────────────────
 TTS_CONFIG = {
-    "rate":        175,   # words per minute (default 200, slower = clearer)
+    "rate":        170,   # words per minute (default 200, slower = clearer)
     "volume":      1.0,   # 0.0 to 1.0
-    "voice_index": 1,     # 0 = David, 1 = Zira (current) — run tests/test_tts.py to list voices
+    "voice_index": 1,     # — run tests/test_tts.py to list voices
 }
 
 # ── Piper TTS (Week 2 upgrade) ───────────────────────────────

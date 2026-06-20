@@ -28,7 +28,7 @@
 - Cross-session context injection
 - Explicit user fact memory
 - Orchestrator class refactor
-- TTS measurement
+- TTFS measurement
 - Chunked TTS streaming
 
 ---
