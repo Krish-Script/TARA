@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 3 of 10  
 **Primary goal:** Transform TARA from a stateless voice assistant into a persistent conversational assistant using SQLite  
-**Status:** 🔄 In Progress (T6 remaining)
+**Status:** ✅ Completed
 
 ---
 
@@ -11,217 +11,190 @@
 
 Week 3 focused on giving TARA memory — the ability to remember conversations across sessions and store facts the user explicitly provides. Before this sprint, every session started from zero. After it, TARA recalls previous exchanges, addresses the user by name, and maintains context across restarts.
 
-Five components were built or changed this week: a SQLite memory layer, LLM context injection, a cold-start fix that had been unresolved since Week 1, an Orchestrator class refactor that separated pipeline logic from startup infrastructure, and TTFS instrumentation that splits TTS timing into synthesis and playback for accurate latency measurement.
+Six tasks were completed this week: SQLite memory layer, LLM context injection, cold-start fix, Orchestrator class refactor, TTFS measurement instrumentation, and chunked TTS streaming architecture.
 
 ---
 
 ## Performance Baseline
 
-| Metric | Week 2 | Week 3 | Change |
-|--------|--------|--------|--------|
-| STT avg latency | 0.59s | 0.62s | +0.03s (negligible) |
-| LLM avg latency | 1.05s | 1.04s | stable |
-| TTS synthesis avg | — | 0.69s | new measurement |
-| TTS playback avg | — | 6.65s | new measurement (irreducible) |
-| TTS total avg | 5.42s | 5.74s | +0.32s (memory injection overhead) |
-| Total avg latency | 7.06s | 7.35s | +0.29s |
-| Cold start (first response) | ~7–80s | eliminated | ✅ fixed |
-| **TTFS (primary metric)** | — | **2.52s** | **new primary benchmark** |
+| Metric | Week 2 | Week 3 (T5) | Week 3 (T6) | Change W2→W3 |
+|--------|--------|-------------|-------------|--------------|
+| STT avg | 0.59s | 0.63s | 0.58s | stable |
+| LLM avg | 1.05s | 1.19s | 1.21s | +0.16s (memory context overhead) |
+| TTS synthesis | — | 0.69s | 0.65s | measured for first time |
+| TTS playback | — | — | 4.71s | irreducible |
+| **TTFS (primary)** | — | **2.52s** | **2.46s** | **-0.06s** |
+| Total avg | 7.06s | 7.35s | 6.51s | -0.55s |
+| Cold start | ~7–80s | eliminated | eliminated | ✅ fixed |
 
-The +0.29s total increase is the cost of memory context injection. The headline metric from Week 3 onward is **TTFS (time-to-first-syllable)** — the silence the user experiences between finishing their sentence and hearing TARA start speaking. Total pipeline time includes TTS playback duration, which is irreducible and not experienced as lag.
-
-### TTFS Breakdown
-
-```
-User stops speaking
-    ↓ 0.64s  — STT transcription
-    ↓ 1.19s  — LLM generation
-    ↓ 0.69s  — Piper synthesis (audio generated, not yet playing)
-    ← TARA starts speaking  (TTFS: 2.52s)
-    ↓ 6.65s  — audio plays out (user is listening, not waiting)
-```
-
-T6 target: reduce synthesis from 0.69s to ~0.15-0.20s (first sentence chunk only), bringing TTFS to ~2.0s.
+TTFS (time-to-first-syllable) was introduced this week as the primary metric, replacing total pipeline latency. TTFS measures the silence the user experiences — the gap between finishing speaking and hearing TARA's first word. Total latency includes playback duration, which is TARA speaking and is not dead silence.
 
 ---
 
 ## What Was Built
 
-### 1. SQLite Memory Layer (`components/memory.py`)
+### T1 — Cold Start Fix (`components/llm.py`)
+
+The 80.82s cold start measured in Week 1 was resolved by passing `keep_alive="30m"` as a **top-level parameter** to `ollama.chat()`. Two attempts were required:
+
+- **First attempt (failed):** placed inside `options` dict — Ollama silently ignores it there
+- **Second attempt (working):** top-level parameter — model stays in VRAM for 30 minutes
+
+Confirmed by running a 7.3-minute session with zero LLM latency spikes. The original 80s was a disk→VRAM load; subsequent loads are RAM→VRAM (~7s). With `keep_alive`, neither happens during a session.
+
+### T2 — SQLite Memory Layer (`components/memory.py`)
 
 A self-contained memory module with two tables:
 
-**`conversations`** — stores every exchange with session ID, turn index, timestamp, user message, and assistant response. Used to inject recent context into the LLM on each request.
+**`conversations`** — stores every exchange with session ID, turn index, timestamp, user message, and assistant response.
 
-**`user_facts`** — stores permanent user-provided facts (name, preferences, background). Persists across all sessions indefinitely.
+**`user_facts`** — stores permanent user-provided facts. Persists across all sessions indefinitely.
 
 Key design decisions:
-- `fact_key` normalization before storage prevents duplicate facts from different phrasings
+- `fact_key` normalization prevents duplicate facts from different phrasings
 - `ON CONFLICT DO UPDATE` upsert pattern for clean fact management
 - WAL journal mode for better concurrent read performance
 - Connection-per-operation pattern for thread safety
 
-### 2. LLM Context Injection (`components/llm.py`)
+### T3 — Explicit Memory Commands
 
-Memory context is injected into the system prompt using the same few-shot principle established in Week 2 — showing TARA past exchanges as examples rather than writing rules about "having access to previous context." Small models (llama3.2:3b) follow demonstrated patterns more reliably than instructions.
-
-### 3. Voice Memory Commands
-
-Three memory-specific voice commands added to the pipeline:
+Three voice commands for direct memory interaction:
 
 | Command | Behaviour |
 |---------|-----------|
-| "Remember that [fact]" | Extracts and stores fact permanently |
+| "Remember that [fact]" | Extracts and stores permanently |
 | "What do you remember about me?" | Recalls all stored facts aloud |
 | "Clear memory" | Resets LLM conversation history (facts preserved) |
 
-### 4. Cold Start Fix (`components/llm.py`)
+### T4 — Orchestrator Class Refactor (`components/orchestrator.py`)
 
-The 80.82s cold start measured in Week 1 was resolved by passing `keep_alive="30m"` as a **top-level parameter** to `ollama.chat()`. Previous attempt placed it inside `options`, where Ollama silently ignores it. The distinction matters: it is an API-level parameter, not a model inference option.
+All pipeline logic extracted from `main.py` into a dedicated `Orchestrator` class.
 
-Post-fix behaviour: model stays loaded in VRAM for 30 minutes of inactivity. Confirmed by running a 7.3-minute session with no LLM latency spike.
+**Command registry pattern** — `(condition, handler)` tuples evaluated in order. Adding a new command requires adding one tuple and two methods. Nothing else changes.
 
-### 5. Orchestrator Class Refactor (`components/orchestrator.py`)
-
-`main.py` was holding two unrelated concerns — component initialization and pipeline execution logic. As TARA's feature set grows, mixing these would make every addition harder and riskier.
-
-The refactor extracted all pipeline logic into a dedicated `Orchestrator` class:
-
-**`main.py`** now owns only:
-- Component initialization
-- Audio capture loop
-- Banner and startup UI
-
-**`components/orchestrator.py`** now owns:
-- Command routing via a registry pattern
-- Full pipeline execution (Memory → LLM → TTS → Persistence)
-- Session stats tracking
-- Stage-structured pipeline with explicit insertion points for future features
-
-Key design decisions in the Orchestrator:
-
-**Command registry pattern** — instead of a chain of `if` statements, commands are registered as `(condition, handler)` pairs. Adding a new command means adding one tuple and two methods. Nothing else changes:
-
-```python
-def _build_command_registry(self) -> list[tuple]:
-    return [
-        (self._is_exit,     self._handle_exit),
-        (self._is_clear,    self._handle_clear),
-        (self._is_remember, self._handle_remember),
-        (self._is_recall,   self._handle_recall),
-    ]
-```
-
-**Staged pipeline with future insertion points** — `_run_pipeline()` has seven named stages. Stages 2, 3, and 4 are commented placeholders for intent detection, tool execution, and RAG retrieval:
-
+**Staged pipeline with insertion points:**
 ```
 Stage 1: Memory Context Retrieval      ← active
 Stage 2: Intent Detection              [FUTURE — Week 4]
 Stage 3: Tool Execution                [FUTURE — Week 4]
 Stage 4: RAG Retrieval                 [FUTURE — Week 5]
-Stage 5: LLM Generation               ← active
-Stage 6: Response Delivery             [→ Chunked TTS in T6]
+Stage 5: LLM Generation                ← active
+Stage 6: Response Delivery             ← active (chunked TTS)
 Stage 7: Persistence                   ← active
 ```
 
-**Single Responsibility on MemoryStore** — previously, `MemoryStore.remember_if_requested()` combined intent detection with storage. The Orchestrator now makes the decision of when to remember; `MemoryStore` only stores and retrieves.
+**Single Responsibility fix on MemoryStore** — intent detection for "remember" commands moved from `MemoryStore` to `Orchestrator`. `MemoryStore` is now a pure storage layer.
 
-### 6. TTFS Instrumentation (`components/tts.py`, `components/orchestrator.py`)
+`main.py` shrank from ~130 lines to ~70. It now only initializes components and runs the audio loop.
 
-Total pipeline latency (8.48s) obscures the real user experience metric. Most of that time is TARA speaking — which is not lag. The silence between the user finishing their sentence and TARA starting to speak is what feels slow.
+### T5 — TTFS Measurement
 
-`tts.speak()` now returns a `TTSResult` dataclass instead of a single float, splitting timing into two meaningful components:
+TTFS instrumentation added to the pipeline by separating TTS timing into two distinct measurements:
+
+- **`synthesis_latency`** — time for piper.exe to generate audio (dead silence, contributes to TTFS)
+- **`playback_latency`** — time audio plays through speakers (TARA is speaking, not dead time)
 
 ```python
 @dataclass
 class TTSResult:
-    synthesis_latency: float  # piper.exe processing — contributes to TTFS
-    playback_latency:  float  # audio playing — irreducible, not perceived as lag
-
-    @property
-    def total_latency(self) -> float:
-        return self.synthesis_latency + self.playback_latency
+    synthesis_latency: float  # TTFS component
+    playback_latency:  float  # irreducible
+    total_latency:     float
+    chunks:            int
 ```
 
-The Orchestrator now calculates and tracks TTFS after every turn:
+T5 baseline TTFS established: **2.52s** (STT 0.63s + LLM 1.19s + synthesis 0.69s).
+
+### T6 — Chunked TTS Streaming
+
+Producer-consumer threading architecture for sentence-level audio streaming.
+
+**Architecture:**
+```
+Thread A (Producer): split text → synthesise chunk 1 → queue → synthesise chunk 2 → queue → sentinel
+Thread B (Consumer): wait → play chunk 1 → wait → play chunk 2 → stop on sentinel
+```
+
+**Key finding:** threading overhead costs more than parallelism saves for single-sentence responses. A sequential fallback was added:
 
 ```python
-ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
+def speak(self, text: str) -> TTSResult:
+    sentences = self._split_sentences(text)
+    if len(sentences) == 1:
+        return self._speak_sequential(sentences[0])  # no overhead
+    return self._speak_chunked(sentences)             # true parallelism
 ```
 
-TTFS is now the primary metric in the baseline report, displayed above all other numbers. Total latency is still tracked but treated as secondary.
+**T6 result (controlled test, same question types as T5):**
+- TTFS: 2.46s (vs T5 baseline 2.52s, -0.06s improvement)
+- TTS synthesis: 0.65s (vs 0.69s, -0.04s)
 
-**Week 3 TTFS baseline: 2.52s avg** (STT 0.64s + LLM 1.19s + synthesis 0.69s)
-**T6 realistic target: ~2.0s** (synthesis reduced to ~0.15-0.20s via chunked TTS)
-
-**1. `keep_alive` parameter placement**
-First fix attempt put `keep_alive` inside the `options` dict. Ollama silently ignored it, and the model still unloaded after 5 minutes. The real cold start was ~7s (RAM→VRAM), not 80s (disk→VRAM) — the original measurement was a one-time disk load cost, not representative of normal operation.
-
-**2. Missing print statements in command branches**
-All `continue` branches (remember, recall, clear memory, goodbye) called `tts.speak()` but skipped `print()`. Fixed by introducing a `_say()` helper method that always prints and speaks together, making it architecturally impossible to speak without printing.
-
-**3. `response` variable scope bug**
-The recall branch spoke the correct facts but never assigned them to `response`, then printed the empty default. Resolved alongside the `_say()` refactor.
+The threading benefit for multi-sentence responses is real but not demonstrated this week — TARA's few-shot prompt consistently produces single sentences. Week 4 tool responses will have longer, structured output that exercises the chunked path.
 
 ---
 
-## Architecture: Before and After
+## Challenges Encountered
 
-**Before (Week 2):**
+**1. `keep_alive` parameter placement (T1)**
+Silent failure — Ollama ignored the parameter with no warning. Only detectable by waiting 5+ minutes and observing VRAM drop. Always verify configuration changes with observable, time-delayed evidence.
+
+**2. Missing print statements in command branches (T3)**
+All `continue` branches called `tts.speak()` but skipped `print()`. Fixed with `_say()` helper that enforces print+speak consistency at the design level, making it architecturally impossible to speak without printing.
+
+**3. `response` variable scope bug (T3)**
+The recall branch spoke the correct facts but never assigned them to `response`, then printed the empty default. Fixed alongside the `_say()` refactor.
+
+**4. Threading overhead exceeds parallelism benefit for 1-chunk responses (T6)**
+Initial T6 results showed TTFS regression (2.52s → 2.86s). Investigation revealed threading setup cost (~0.20s) exceeded any benefit for single-sentence responses. Sequential fallback restored expected performance. The lesson: always measure threading overhead against the workload before assuming concurrency helps.
+
+**5. Unfair benchmark comparison (T6)**
+First T6 comparison used longer responses than T5 baseline (20+ word sentences vs 7-word sentences), inflating synthesis time from 0.69s to 0.88s regardless of threading. Fair comparison requires controlled test conditions — same question types, similar response lengths.
+
+---
+
+## Architecture: Before and After Week 3
+
+**Before:**
 ```
-main.py
-  └── TARA class
-        ├── __init__() — component init
-        └── run() — audio loop + ALL pipeline logic + command handling + stats
+main.py → TARA class (init + pipeline + commands + stats + UI)
 ```
 
-**After (Week 3):**
+**After:**
 ```
-main.py
-  └── TARA class
-        ├── __init__() — component init only
-        └── run() — audio loop only
-
-components/orchestrator.py
-  └── Orchestrator class
-        ├── process_turn() — command routing
-        ├── _build_command_registry() — all commands in one place
-        ├── _run_pipeline() — staged pipeline execution
-        └── _print_baseline_report() — session stats
+main.py → TARA class (init + audio loop only)
+    └── components/orchestrator.py → Orchestrator (pipeline + commands + stats)
+    └── components/memory.py → MemoryStore (storage only)
+    └── components/tts.py → TextToSpeech (chunked streaming + sequential fallback)
 ```
-
-`main.py` shrank from ~130 lines to ~70. The Orchestrator will not require `main.py` changes for any future pipeline feature additions.
 
 ---
 
 ## Lessons Learned
 
-- **Silent parameter failures are harder to debug than errors.** `keep_alive` being ignored produced no warning — only a behaviour difference visible after a 5-minute wait. Always verify configuration changes with observable evidence.
-- **Architectural helpers prevent entire classes of bugs.** The `_say()` method enforces print+speak consistency at the design level. No amount of code review catches what a good constraint prevents automatically.
-- **Refactor before it hurts, not after.** The Orchestrator refactor was done before adding chunked TTS. Doing it after would have meant untangling pipeline logic and threading code simultaneously — a much harder problem.
-- **Single Responsibility applies to data classes too.** `MemoryStore.remember_if_requested()` was doing intent detection inside a storage class. Catching this before Week 4's tool architecture made the fix easy.
-- **"Total latency" is the wrong metric for voice assistants.** Splitting TTS into synthesis and playback revealed that 6.65s of the 8.48s total is TARA speaking — not dead silence. TTFS (2.52s) is what the user actually feels as lag. Measuring the wrong thing would have led to optimising the wrong component.
+- **Silent configuration failures need time-delayed verification.** `keep_alive` in the wrong place produced no error, only a behaviour difference 5 minutes later.
+- **Architectural helpers prevent entire classes of bugs.** `_say()` makes it structurally impossible to speak without printing. Constraints beat code review.
+- **Threading overhead is not free.** Concurrency only pays when there is real work to overlap. Single-chunk responses have nothing to parallelise — sequential is faster.
+- **Benchmark conditions must be controlled.** Response length variation between T5 and T6 test sessions invalidated direct comparison. Controlled retests with matched inputs produced valid results.
+- **Refactor before the complexity compounds.** The Orchestrator refactor was done before adding chunked TTS threading. Doing it after would have meant untangling pipeline logic and threading simultaneously.
+- **Measure what changed, not just what was built.** TTFS as a metric only became meaningful because synthesis and playback were separated into `TTSResult`. You cannot optimise what you cannot measure.
 
 ---
 
 ## Sprint Outcome
 
-✅ SQLite memory layer with conversations and user_facts tables  
-✅ Cross-session memory recall working  
-✅ Explicit "remember that" and "what do you remember" commands  
-✅ Cold start eliminated via `keep_alive` top-level parameter  
-✅ Orchestrator refactor — pipeline logic separated from startup  
-✅ Command registry pattern — extensible to 20+ commands without structural change  
-✅ Staged pipeline with Week 4 and 5 insertion points documented  
-✅ TTFS instrumentation — synthesis and playback timed separately  
-✅ TTFS baseline established: 2.52s avg (target for T6: ~2.0s)
+✅ SQLite memory with cross-session recall  
+✅ Explicit "remember / recall / clear" voice commands  
+✅ Cold start eliminated (keep_alive top-level parameter)  
+✅ Orchestrator refactor — command registry + staged pipeline  
+✅ TTFS measurement infrastructure (TTSResult dataclass)  
+✅ Chunked TTS architecture — producer-consumer threading + sequential fallback  
+✅ TTFS baseline: 2.52s (T5) → 2.46s (T6 controlled test)  
 
 ---
 
 ## Week 4 Preview
 
 **Theme: Agentic Tools**
-First tool integrations: system monitoring (psutil), basic file operations, and the first structured tool-calling architecture. TARA will move from answering questions to taking actions.
+Intent detection (Stage 2) and tool execution (Stage 3) pipeline stages are ready with placeholder comments. Week 4 fills them in: system monitoring via psutil, basic file operations, and the first structured tool-calling architecture.
 
-The Orchestrator's Stage 2 (Intent Detection) and Stage 3 (Tool Execution) placeholders are ready.  
-Week 4 fills them in.
+The chunked TTS path (multi-sentence streaming) will see its first real workout in Week 4, where tool results produce longer, structured responses.

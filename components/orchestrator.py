@@ -1,4 +1,7 @@
 """
+components/orchestrator.py — Pipeline Coordinator
+==================================================
+
 The Orchestrator sits between audio input and AI components.
 It owns two responsibilities:
   1. Command routing  — deciding what kind of input was received
@@ -95,7 +98,7 @@ class Orchestrator:
         Falls through to the main pipeline if no command matches.
 
         Args:
-            text: transcribed speech from the user
+            text:        transcribed speech from the user
             stt_latency: seconds taken by STT
 
         Returns:
@@ -222,18 +225,21 @@ class Orchestrator:
         print(f"       LLM latency: {llm_latency:.2f}s")
         self.stats["llm"].append(llm_latency)
 
-        # ── Stage 6: Response Delivery [→ Chunked TTS in T6] ─
+        # ── Stage 6: Response Delivery (Chunked TTS — T6) ───────
+        # Splits response at sentence boundaries.
+        # Producer thread synthesises each chunk with piper.exe.
+        # Consumer thread plays chunks as they arrive.
+        # synthesis_latency = first-chunk time only (TTFS component).
         tts_result = self.tts.speak(response)
-
-        print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s")
+        print(f"       TTS chunks:    {tts_result.chunks}")
+        print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s  ← first chunk (TTFS)")
         print(f"       TTS playback:  {tts_result.playback_latency:.2f}s")
         print(f"       TTS total:     {tts_result.total_latency:.2f}s")
-
         self.stats["tts"].append(tts_result.total_latency)
         self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
 
-        # TTFS = dead silence between user stopping and TARA starting
-        ttfs = stt_latency + self.stats["llm"][-1] + tts_result.synthesis_latency
+        # TTFS = silence between user finishing speaking and TARA starting
+        ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
         self.stats["ttfs"].append(ttfs)
         print(f"       ── TTFS: {ttfs:.2f}s ──")
 
@@ -272,8 +278,10 @@ class Orchestrator:
         print(f"  Total turns      : {turns}")
         print()
         print(f"  ★ TTFS (primary) | avg: {avg(self.stats['ttfs']):.2f}s  "
-            f"min: {mn(self.stats['ttfs']):.2f}s  max: {mx(self.stats['ttfs']):.2f}s")
-        print(f"    Target (T6)    | <0.60s  (chunked TTS)")
+            f"min: {mn(self.stats['ttfs']):.2f}s  "
+            f"max: {mx(self.stats['ttfs']):.2f}s")
+        print(f"    T5 baseline    | 2.52s")
+        print(f"    T6 result      | {avg(self.stats['ttfs']):.2f}s")
         print()
         print(f"  Component        | avg    | min    | max")
         print(f"  ─────────────────|--------|--------|--------")
@@ -282,9 +290,10 @@ class Orchestrator:
         print(f"  LLM (Ollama)     | {avg(self.stats['llm']):.2f}s  "
             f"| {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
         print(f"  TTS synthesis    | {avg(self.stats['tts_synthesis']):.2f}s  "
-            f"| {mn(self.stats['tts_synthesis']):.2f}s  | {mx(self.stats['tts_synthesis']):.2f}s")
+            f"| {mn(self.stats['tts_synthesis']):.2f}s  "
+            f"| {mx(self.stats['tts_synthesis']):.2f}s")
         print(f"  TTS playback     | {avg(self.stats['tts']):.2f}s  "
-            f"| — (irreducible) —")
+            f"| — irreducible —")
         total = avg(self.stats["stt"]) + avg(self.stats["llm"]) + avg(self.stats["tts"])
         print(f"  ─────────────────|--------|--------|--------")
         print(f"  TOTAL avg        | {total:.2f}s")
