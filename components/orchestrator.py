@@ -77,6 +77,8 @@ class Orchestrator:
             "stt":           [],
             "llm":           [],
             "tts":           [],
+            "tts_synthesis": [],
+            "ttfs":          [],
             "session_start": time.time(),
         }
 
@@ -109,7 +111,7 @@ class Orchestrator:
                 return handler(text)
 
         # No command matched — run the full response pipeline
-        return self._run_pipeline(text)
+        return self._run_pipeline(text, stt_latency)
 
     def print_report(self):
         """Print end-of-session performance report."""
@@ -185,7 +187,7 @@ class Orchestrator:
 
     # ── Pipeline ─────────────────────────────────────────────
 
-    def _run_pipeline(self, text: str) -> bool:
+    def _run_pipeline(self, text: str, stt_latency: float) -> bool:
         """
         Full response pipeline for a normal conversation turn.
 
@@ -221,12 +223,19 @@ class Orchestrator:
         self.stats["llm"].append(llm_latency)
 
         # ── Stage 6: Response Delivery [→ Chunked TTS in T6] ─
-        # Currently: generate full audio, then play.
-        # T6 target: generate first sentence chunk, start playing,
-        #            continue generating remaining chunks in parallel.
-        tts_latency = self.tts.speak(response)
-        print(f"       TTS latency: {tts_latency:.2f}s")
-        self.stats["tts"].append(tts_latency)
+        tts_result = self.tts.speak(response)
+
+        print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s")
+        print(f"       TTS playback:  {tts_result.playback_latency:.2f}s")
+        print(f"       TTS total:     {tts_result.total_latency:.2f}s")
+
+        self.stats["tts"].append(tts_result.total_latency)
+        self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
+
+        # TTFS = dead silence between user stopping and TARA starting
+        ttfs = stt_latency + self.stats["llm"][-1] + tts_result.synthesis_latency
+        self.stats["ttfs"].append(ttfs)
+        print(f"       ── TTFS: {ttfs:.2f}s ──")
 
         # ── Stage 7: Persistence ──────────────────────────────
         self.memory.save_turn(
@@ -262,15 +271,21 @@ class Orchestrator:
         print(f"  Session duration : {session_mins:.1f} min")
         print(f"  Total turns      : {turns}")
         print()
-        print(f"  Component    | avg    | min    | max")
-        print(f"  -------------|--------|--------|--------")
-        print(f"  STT (Whisper)| {avg(self.stats['stt']):.2f}s  "
-              f"| {mn(self.stats['stt']):.2f}s  | {mx(self.stats['stt']):.2f}s")
-        print(f"  LLM (Ollama) | {avg(self.stats['llm']):.2f}s  "
-              f"| {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
-        print(f"  TTS (piper)  | {avg(self.stats['tts']):.2f}s  "
-              f"| {mn(self.stats['tts']):.2f}s  | {mx(self.stats['tts']):.2f}s")
+        print(f"  ★ TTFS (primary) | avg: {avg(self.stats['ttfs']):.2f}s  "
+            f"min: {mn(self.stats['ttfs']):.2f}s  max: {mx(self.stats['ttfs']):.2f}s")
+        print(f"    Target (T6)    | <0.60s  (chunked TTS)")
+        print()
+        print(f"  Component        | avg    | min    | max")
+        print(f"  ─────────────────|--------|--------|--------")
+        print(f"  STT (Whisper)    | {avg(self.stats['stt']):.2f}s  "
+            f"| {mn(self.stats['stt']):.2f}s  | {mx(self.stats['stt']):.2f}s")
+        print(f"  LLM (Ollama)     | {avg(self.stats['llm']):.2f}s  "
+            f"| {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
+        print(f"  TTS synthesis    | {avg(self.stats['tts_synthesis']):.2f}s  "
+            f"| {mn(self.stats['tts_synthesis']):.2f}s  | {mx(self.stats['tts_synthesis']):.2f}s")
+        print(f"  TTS playback     | {avg(self.stats['tts']):.2f}s  "
+            f"| — (irreducible) —")
         total = avg(self.stats["stt"]) + avg(self.stats["llm"]) + avg(self.stats["tts"])
-        print(f"  -------------|--------|--------|--------")
-        print(f"  TOTAL (avg)  | {total:.2f}s")
+        print(f"  ─────────────────|--------|--------|--------")
+        print(f"  TOTAL avg        | {total:.2f}s")
         print("=" * 55 + "\n")

@@ -22,7 +22,7 @@ class SpeechToText:
     # ── Model Loading ────────────────────────────────────────
 
     def _load_model(self):
-        """Load Whisper into memory. First run downloads ~150 MB."""
+        """Load Whisper into memory."""
         print("[STT] Loading Whisper model...")
         self.model = WhisperModel(
             model_size_or_path=self.config["model_size"],

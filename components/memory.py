@@ -331,10 +331,6 @@ class MemoryStore:
     def extract_fact_from_text(text: str) -> Optional[str]:
         """
         Extract a likely memory fact from a 'remember ...' style request.
-
-        Examples:
-            "remember that my name is Krishnendu"
-            "please remember I am an engineer"
         """
         if not text:
             return None

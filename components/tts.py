@@ -21,7 +21,18 @@ import time
 import wave
 
 import pyaudio
+from components.orchestrator import Orchestrator
+from dataclasses import dataclass
 
+@dataclass
+class TTSResult:
+    """Separate synthesis and playback timings for TTFS measurement."""
+    synthesis_latency: float  # piper.exe processing time — contributes to TTFS
+    playback_latency:  float  # audio playing time — irreducible, not part of TTFS
+
+    @property
+    def total_latency(self) -> float:
+        return self.synthesis_latency + self.playback_latency
 
 class TextToSpeech:
     def __init__(self, config: dict):
@@ -39,50 +50,57 @@ class TextToSpeech:
             print("[TTS]    Download from: https://github.com/rhasspy/piper/releases/latest")
         elif not os.path.exists(model):
             print(f"[TTS] ❌ Voice model not found at: {model}")
-            print("[TTS]    Download en_US-lessac-medium.onnx from HuggingFace")
+            print("[TTS]    Download Voice(en_US-lessac-medium.onnx) from HuggingFace")
         else:
             print("[TTS] Piper binary + voice model ready ✓")
 
-    def speak(self, text: str) -> float:
+
+    def speak(self, text: str) -> TTSResult:
         """
-        Synthesize text to speech and play it.
-        Returns time taken in seconds.
+        Synthesize text and play audio.
+        Returns TTSResult with synthesis and playback timed separately.
+
+        Why separate?
+        synthesis_latency → contributes to TTFS (dead silence the user feels)
+        playback_latency  → TARA is speaking, user is listening, not dead time
         """
         if not text:
-            return 0.0
+            return TTSResult(synthesis_latency=0.0, playback_latency=0.0)
 
-        start = time.time()
-
-        # ── Step 1: Run piper.exe ─────────────────────────────
-        # Pipe text in → get raw PCM int16 audio bytes out
+        # ── Synthesis: piper.exe generates raw PCM ────────────
+        t0 = time.time()
         result = subprocess.run(
             [
                 self.config["piper_exe"],
-                "--model",       self.config["model_path"],
-                "--output-raw",  # raw PCM bytes on stdout, no wav header
+                "--model",      self.config["model_path"],
+                "--output-raw",
             ],
             input=text.encode("utf-8"),
             capture_output=True,
         )
+        synthesis_latency = time.time() - t0
 
         if result.returncode != 0:
             print(f"[TTS] ❌ Piper error: {result.stderr.decode()}")
-            return 0.0
+            return TTSResult(synthesis_latency=synthesis_latency, playback_latency=0.0)
 
-        raw_audio   = result.stdout
+        # ── Playback: PyAudio plays the raw PCM ───────────────
+        t1 = time.time()
         sample_rate = self.config.get("sample_rate", 22050)
-
-        # ── Step 2: Play audio via PyAudio ───────────────────
-        p      = pyaudio.PyAudio()
+        p     = pyaudio.PyAudio()
         stream = p.open(
             format=pyaudio.paInt16,
             channels=1,
             rate=sample_rate,
             output=True,
         )
-        stream.write(raw_audio)
+        stream.write(result.stdout)
         stream.stop_stream()
         stream.close()
         p.terminate()
+        playback_latency = time.time() - t1
 
-        return time.time() - start
+        return TTSResult(
+            synthesis_latency=synthesis_latency,
+            playback_latency=playback_latency,
+        )

@@ -10,14 +10,37 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 3 remaining
-- Chunked TTS streaming (TTFS target: <0.6s)
-- TTFS measurement and reporting
+- Chunked TTS streaming (T6) — first sentence chunk plays while remainder generates
 
 ### Planned — Week 4
 - Intent detection layer
 - Tool execution framework
 - System monitoring tool (psutil)
 - Basic file management tool
+
+---
+
+## [0.4.1] - 2026-06-20
+
+### Added
+- `TTSResult` dataclass in `components/tts.py` — splits TTS timing into `synthesis_latency` and `playback_latency`
+- TTFS (time-to-first-syllable) tracking in `Orchestrator` — calculated as `STT + LLM + synthesis` per turn
+- TTFS displayed per-turn in terminal output and as primary metric in session report
+- `tts_synthesis` stat tracked separately from `tts` total in `Orchestrator.stats`
+
+### Changed
+- `tts.speak()` return type changed from `float` to `TTSResult` — callers access `.total_latency`, `.synthesis_latency`, `.playback_latency`
+- Baseline report now leads with TTFS rather than total latency
+- `_run_pipeline()` accepts `stt_latency` parameter to enable TTFS calculation
+
+### Performance
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| TTFS avg | 2.52s | STT 0.64s + LLM 1.19s + synthesis 0.69s |
+| TTS synthesis avg | 0.69s | T6 target: <0.20s |
+| TTS playback avg | 6.65s | Irreducible — scales with response length |
+| Total avg | 8.48s | Includes playback |
 
 ---
 
@@ -134,7 +157,8 @@ TTS improvement came from two sources: Piper generates audio faster than pyttsx3
 | 0.2.0 | Piper TTS + few-shot prompting | Week 2 | ✅ Released |
 | 0.3.0 | SQLite memory + cold start fix | Week 3 | ✅ Released |
 | 0.4.0 | Orchestrator refactor | Week 3 | ✅ Released |
-| 0.5.0 | Chunked TTS streaming | Week 3 | ⏳ Planned |
+| 0.4.1 | TTFS instrumentation | Week 3 | ✅ Released |
+| 0.5.0 | Chunked TTS streaming | Week 3 | 🔄 In Progress |
 | 0.6.0 | Agentic tool framework | Week 4 | ⏳ Planned |
 
 ---
