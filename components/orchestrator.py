@@ -1,7 +1,4 @@
 """
-components/orchestrator.py — Pipeline Coordinator
-==================================================
-
 The Orchestrator sits between audio input and AI components.
 It owns two responsibilities:
   1. Command routing  — deciding what kind of input was received
@@ -16,15 +13,15 @@ Current pipeline:
         ↓
     Stage 1: Memory Context Retrieval
         ↓
-    Stage 2: Intent Detection          [FUTURE — Week 4]
+    Stage 2: Intent Detection
         ↓
-    Stage 3: Tool Execution            [FUTURE — Week 4]
+    Stage 3: Tool Execution
         ↓
     Stage 4: RAG Retrieval             [FUTURE — Week 5]
         ↓
-    Stage 5: LLM Generation            ← active
+    Stage 5: LLM Generation
         ↓
-    Stage 6: Response Delivery         [→ Chunked TTS in T6]
+    Stage 6: Response Delivery
         ↓
     Stage 7: Persistence
         ↓
@@ -45,6 +42,8 @@ NOT responsible for:
 import time
 
 from components.memory import MemoryStore
+from components.intent import Intent, IntentDetector
+from components.tools.registry import ToolRegistry
 
 
 class Orchestrator:
@@ -75,6 +74,8 @@ class Orchestrator:
         self.memory        = memory
         self.session_id    = session_id
         self.memory_config = memory_config
+        self.intent_detector = IntentDetector()
+        self.tool_registry   = ToolRegistry()
 
         self.stats = {
             "stt":           [],
@@ -82,6 +83,8 @@ class Orchestrator:
             "tts":           [],
             "tts_synthesis": [],
             "ttfs":          [],
+            "ttfs_tool":     [],
+            "tool_latency":  [],
             "session_start": time.time(),
         }
 
@@ -205,16 +208,34 @@ class Orchestrator:
             fact_limit=self.memory_config["fact_limit"],
         )
 
-        # ── Stage 2: Intent Detection [FUTURE — Week 4] ──────
-        # intent = self.intent_detector.classify(text)
+        # ── Stage 2: Intent Detection──────
+        intent, matched = self.intent_detector.classify_with_confidence(text)
+        if intent != Intent.CHAT:
+            print(f"[Intent] {intent.name}  (matched: '{matched}')")
 
-        # ── Stage 3: Tool Execution [FUTURE — Week 4] ────────
-        # tool_result = None
-        # if intent and intent.requires_tool:
-        #     tool_result = self.tool_executor.run(intent)
+        # ── Stage 3: Tool Execution────────
+        if intent != Intent.CHAT:
+            tool_result = self.tool_registry.dispatch(intent, text)
+            if tool_result:
+                print(f"\n[TARA] {tool_result.formatted_output}")
+                print(f"       Tool: {tool_result.tool_name} | "
+                    f"latency: {tool_result.latency:.3f}s")
+                tts_result = self.tts.speak(tool_result.formatted_output)
+                self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
+                self.stats["tts"].append(tts_result.total_latency)
+                ttfs = stt_latency + tts_result.synthesis_latency
+                self.stats["tool_latency"].append(tool_result.latency)
+                self.stats["ttfs_tool"].append(ttfs)
+                print(f"       ── TTFS: {ttfs:.2f}s ──")
+                self.memory.save_turn(
+                    session_id=self.session_id,
+                    user_message=text,
+                    assistant_response=tool_result.formatted_output,
+                )
+                return True
 
         # ── Stage 4: RAG Retrieval [FUTURE — Week 5] ─────────
-        # rag_context = self.retriever.query(text) if tool_result is None else None
+        # Placeholder for future RAG retrieval stage.
 
         # ── Stage 5: LLM Generation ──────────────────────────
         print("[Thinking...]")
@@ -225,7 +246,7 @@ class Orchestrator:
         print(f"       LLM latency: {llm_latency:.2f}s")
         self.stats["llm"].append(llm_latency)
 
-        # ── Stage 6: Response Delivery (Chunked TTS — T6) ───────
+        # ── Stage 6: Response Delivery (Chunked TTS) ───────
         # Splits response at sentence boundaries.
         # Producer thread synthesises each chunk with piper.exe.
         # Consumer thread plays chunks as they arrive.
@@ -269,32 +290,56 @@ class Orchestrator:
         def mx(lst):  return max(lst)             if lst else 0.0
 
         session_mins = (time.time() - self.stats["session_start"]) / 60
-        turns        = len(self.stats["llm"])
+        chat_turns   = len(self.stats["llm"])
+        tool_turns   = len(self.stats["tool_latency"])
+        total_turns  = chat_turns + tool_turns
 
         print("\n" + "=" * 55)
-        print("  WEEK 3 BASELINE PERFORMANCE REPORT")
+        print("  WEEK 4 BASELINE PERFORMANCE REPORT")
         print("=" * 55)
         print(f"  Session duration : {session_mins:.1f} min")
-        print(f"  Total turns      : {turns}")
+        print(f"  Total turns      : {total_turns}  "
+            f"(chat: {chat_turns} | tool: {tool_turns})")
         print()
-        print(f"  ★ TTFS (primary) | avg: {avg(self.stats['ttfs']):.2f}s  "
-            f"min: {mn(self.stats['ttfs']):.2f}s  "
-            f"max: {mx(self.stats['ttfs']):.2f}s")
-        print(f"    T5 baseline    | 2.52s")
-        print(f"    T6 result      | {avg(self.stats['ttfs']):.2f}s")
+
+        # ── TTFS ─────────────────────────────────────────────────
+        all_ttfs = self.stats["ttfs"] + self.stats["ttfs_tool"]
+        print(f"  ★ TTFS (all)     | avg: {avg(all_ttfs):.2f}s  "
+            f"min: {mn(all_ttfs):.2f}s  max: {mx(all_ttfs):.2f}s")
+        if self.stats["ttfs"]:
+            print(f"    Chat path      | avg: {avg(self.stats['ttfs']):.2f}s  "
+                f"(W3 baseline: 2.46s)")
+        if self.stats["ttfs_tool"]:
+            print(f"    Tool path      | avg: {avg(self.stats['ttfs_tool']):.2f}s  "
+                f"(target: ≤1.50s)")
         print()
+
+        # ── Component breakdown ───────────────────────────────────
         print(f"  Component        | avg    | min    | max")
         print(f"  ─────────────────|--------|--------|--------")
         print(f"  STT (Whisper)    | {avg(self.stats['stt']):.2f}s  "
             f"| {mn(self.stats['stt']):.2f}s  | {mx(self.stats['stt']):.2f}s")
-        print(f"  LLM (Ollama)     | {avg(self.stats['llm']):.2f}s  "
-            f"| {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
+
+        if self.stats["llm"]:
+            print(f"  LLM (chat only)  | {avg(self.stats['llm']):.2f}s  "
+                f"| {mn(self.stats['llm']):.2f}s  | {mx(self.stats['llm']):.2f}s")
+
+        if self.stats["tool_latency"]:
+            print(f"  Tool execution   | {avg(self.stats['tool_latency']):.3f}s "
+                f"| {mn(self.stats['tool_latency']):.3f}s "
+                f"| {mx(self.stats['tool_latency']):.3f}s")
+
         print(f"  TTS synthesis    | {avg(self.stats['tts_synthesis']):.2f}s  "
             f"| {mn(self.stats['tts_synthesis']):.2f}s  "
             f"| {mx(self.stats['tts_synthesis']):.2f}s")
         print(f"  TTS playback     | {avg(self.stats['tts']):.2f}s  "
             f"| — irreducible —")
-        total = avg(self.stats["stt"]) + avg(self.stats["llm"]) + avg(self.stats["tts"])
+
         print(f"  ─────────────────|--------|--------|--------")
-        print(f"  TOTAL avg        | {total:.2f}s")
+        if chat_turns:
+            chat_total = avg(self.stats["stt"]) + avg(self.stats["llm"]) + avg(self.stats["tts"])
+            print(f"  Chat path total  | {chat_total:.2f}s")
+        if tool_turns:
+            tool_total = avg(self.stats["stt"]) + avg(self.stats["tool_latency"]) + avg(self.stats["tts"])
+            print(f"  Tool path total  | {tool_total:.2f}s")
         print("=" * 55 + "\n")

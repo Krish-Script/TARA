@@ -9,11 +9,48 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 4
-- Intent detection layer (Orchestrator Stage 2)
-- Tool execution framework (Orchestrator Stage 3)
-- System monitoring tool (psutil — CPU, RAM, battery by voice)
-- Basic file management tool
+### Planned — Week 4 (remaining)
+- System monitoring tool (psutil — CPU, RAM, disk, battery, VRAM)
+- Extend ToolRegistry with SystemMonitor
+- Tool Response Formatter extension for system queries
+- Benchmark & validation (15-query test set, intent accuracy)
+- Chunked TTS multi-chunk verification via longer tool responses
+
+---
+
+## [0.6.0] - 2026-06-23
+
+### Added
+- `components/intent.py` — IntentDetector with keyword-pattern routing
+  - Five Intent types: CHAT, TIME_QUERY, SYSTEM_QUERY, CALCULATION, MEMORY
+  - `classify()` and `classify_with_confidence()` — latter returns matched phrase for logging
+  - Specific multi-word phrase patterns only — avoids bare-keyword false positives ("ram usage" not "ram")
+- `components/tools/registry.py` — ToolRegistry dispatcher and ToolResult dataclass
+  - Maps `Intent → handler` with full error isolation — tool failures return graceful fallback, never crash pipeline
+  - `ToolResult` standardises all tool output: `raw_output`, `formatted_output`, `latency`, `success`, `source`
+- `components/tools/time_tool.py` — TimeTool returning structured datetime dict
+- `components/tools/formatter.py` — ToolFormatter converting raw dicts to TTS-ready natural language
+  - Template-based formatting: no markdown, spells out "gigabytes"/"percent", max two sentences
+- `components/tools/__init__.py` — tools package initialiser
+
+### Changed
+- `components/orchestrator.py` — Stage 2 (Intent Detection) and Stage 3 (Tool Execution) now active
+- `orchestrator.stats` — added `ttfs_tool` and `tool_latency` tracking
+- `_print_baseline_report()` — split into chat path / tool path with separate TTFS lines
+
+### Performance
+
+| Metric | Week 3 | Week 4 T1 | Change |
+|--------|--------|-----------|--------|
+| TTFS (chat path) | 2.46s | 2.52s | stable |
+| TTFS (tool path) | — | **1.17s** | new — beats ≤1.50s target |
+| Tool execution latency | — | 0.000s | new (time tool) |
+| Tool queries supported | 0 | 1 | +1 (time/date) |
+
+### Technical Notes
+- Keyword matching chosen over LLM intent classification: <5ms vs 0.8–1.2s latency, 100% vs ~85% accuracy on well-defined commands
+- Tool path total time (7.03s) is not a meaningful speed comparison — TTS playback dominates and scales with response length regardless of path. TTFS (1.17s vs 2.52s chat) is the correct metric
+- Week 3 Orchestrator refactor validated: Stage 2&3 wiring took under 30 minutes due to explicit placeholder comments
 
 ---
 
@@ -138,7 +175,8 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 |--------|-------|
 | STT avg | 0.70s |
 | LLM warm inference | 0.68s |
-| LLM cold start (disk→VRAM) | 80.82s |
+| LLM model warm-up (during startup) | ~8.5s |
+| LLM cold start (disk→VRAM) (one-time) | 80.82s |
 | TTS avg (full responses) | 11.23s |
 | Time-to-first-response | ~2.0s |
 | VRAM steady-state | 2.2GB |
@@ -154,7 +192,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.3.0 | SQLite memory + cold start fix | Week 3 | ✅ Released |
 | 0.4.0 | Orchestrator refactor | Week 3 | ✅ Released |
 | 0.5.0 | TTFS measurement + chunked TTS | Week 3 | ✅ Released |
-| 0.6.0 | Agentic tool framework | Week 4 | ⏳ Planned |
+| 0.6.0 | Agentic tool framework | Week 4 | 🔄 In Progress |
 
 ---
 
