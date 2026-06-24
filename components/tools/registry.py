@@ -60,10 +60,9 @@ class ToolRegistry:
         time_tool = TimeTool()
         self._registry[Intent.TIME_QUERY] = time_tool.run
 
-        # Week 4 T3 — register SystemMonitor here:
-        # from components.tools.system_monitor import SystemMonitor
-        # system_monitor = SystemMonitor()
-        # self._registry[Intent.SYSTEM_QUERY] = system_monitor.run
+        from components.tools.system_monitor import SystemMonitor
+        system_monitor = SystemMonitor()
+        self._registry[Intent.SYSTEM_QUERY] = system_monitor.run
 
     def dispatch(self, intent: Intent, query: str) -> ToolResult | None:
         """

@@ -10,11 +10,45 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 4 (remaining)
-- System monitoring tool (psutil — CPU, RAM, disk, battery, VRAM)
-- Extend ToolRegistry with SystemMonitor
-- Tool Response Formatter extension for system queries
-- Benchmark & validation (15-query test set, intent accuracy)
-- Chunked TTS multi-chunk verification via longer tool responses
+- T3: Benchmark & validation (15-query test set, intent accuracy)
+
+---
+
+## [0.7.0] - 2026-06-24
+
+### Added
+- `components/tools/system_monitor.py` — SystemMonitor with 7 hardware metrics
+  - CPU usage (`psutil.cpu_percent`, warm-up call in `__init__` discards always-zero first reading)
+  - RAM (used/total GB, percent)
+  - Disk (used/free GB, percent — C: drive)
+  - Battery (percent, charging state, None guard for devices without sensor)
+  - VRAM (used/total/free GB, GPU utilisation — via pynvml)
+  - GPU temperature (pynvml — confirmed working on RTX 3050)
+  - Uptime (hours and minutes since last boot)
+- Thermal-aware operation: GPU temperature via pynvml, CPU temperature attempted via `psutil.sensors_temperatures()` with graceful "unavailable" fallback on Windows
+- `hasattr(psutil, "sensors_temperatures")` guard — correct runtime behaviour on Windows and resolves Pylance false positive
+
+### Changed
+- `components/tools/registry.py` — SystemMonitor registered for SYSTEM_QUERY intent
+- `components/tools/formatter.py` — `_format_system()` extended to handle all 7 metrics including temperature, uptime, battery availability flag, and VRAM unavailability flag
+- `components/intent.py` — SYSTEM_QUERY patterns extended with "temperature", "gpu temp", "cpu temp", "thermal", "how hot", "gpu temperature", "cpu temperature"
+
+### Fixed
+- Temperature queries routing to LLM — "What's the GPU temperature?" was falling through to LLM which fabricated plausible but completely wrong temperature values. Added temperature trigger phrases to SYSTEM_QUERY pattern list
+
+### Performance
+
+| Metric | Value |
+|--------|-------|
+| TTFS (tool path avg) | 1.34–1.42s |
+| Tool execution (system queries) | 0.000–0.004s |
+| Tool execution (CPU query) | ~0.1s (psutil interval cost) |
+| GPU temperature at idle | 48–53°C |
+| VRAM with Ollama loaded | 2.37GB / 4.0GB |
+
+### Technical Notes
+- LLM hallucinated CPU temperature (85°C) and GPU temperature (78°C) when temperature queries fell through to chat path — confirmed that hardware queries must never route to LLM
+- "VRAM usage" matches `ram usage` pattern in IntentDetector (substring match) but SystemMonitor.run() correctly dispatches to `_get_vram()` via full query inspection — correct behaviour, misleading log
 
 ---
 
@@ -192,7 +226,8 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.3.0 | SQLite memory + cold start fix | Week 3 | ✅ Released |
 | 0.4.0 | Orchestrator refactor | Week 3 | ✅ Released |
 | 0.5.0 | TTFS measurement + chunked TTS | Week 3 | ✅ Released |
-| 0.6.0 | Agentic tool framework | Week 4 | 🔄 In Progress |
+| 0.6.0 | Agentic tool framework | Week 4 | ✅ Released |
+| 0.7.0 | System monitor + thermal-aware operation | Week 4 | ✅ Released |
 
 ---
 

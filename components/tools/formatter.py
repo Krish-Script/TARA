@@ -60,44 +60,79 @@ class ToolFormatter:
     @staticmethod
     def _format_system(data: dict) -> str:
         """
-        Formats system monitor output.
-        Only speaks fields that are present in the dict —
-        allows partial queries (CPU-only, RAM-only, etc.)
+        Formats system monitor output into spoken sentences.
+        Only speaks fields present in the dict — allows partial
+        queries (CPU-only, RAM-only, temperature-only, etc.)
         """
         parts = []
 
+        # CPU
         if "cpu_percent" in data:
             parts.append(f"CPU is at {data['cpu_percent']:.0f} percent")
 
+        # RAM
         if "ram_used_gb" in data and "ram_total_gb" in data:
             parts.append(
                 f"RAM is {data['ram_used_gb']:.1f} of "
                 f"{data['ram_total_gb']:.0f} gigabytes used"
             )
 
+        # Disk
         if "disk_free_gb" in data:
-            parts.append(f"disk has {data['disk_free_gb']:.0f} gigabytes free")
-
-        if "battery_percent" in data:
-            charging = data.get("charging", False)
-            status   = "charging" if charging else "not charging"
             parts.append(
-                f"battery is at {data['battery_percent']:.0f} percent and {status}"
+                f"disk has {data['disk_free_gb']:.0f} gigabytes free"
             )
 
-        if "vram_used_gb" in data and "vram_total_gb" in data:
+        # Battery
+        if data.get("battery_available") is False:
+            parts.append("battery sensor is not available on this device")
+        elif "battery_percent" in data:
+            status = "charging" if data.get("charging") else "not charging"
             parts.append(
-                f"VRAM is {data['vram_used_gb']:.1f} of "
+                f"battery is at {data['battery_percent']:.0f} percent "
+                f"and {status}"
+            )
+
+        # VRAM
+        if data.get("vram_available") is False:
+            parts.append("GPU metrics are unavailable")
+        elif "vram_used_gb" in data and "vram_total_gb" in data:
+            parts.append(
+                f"VRAM is {data['vram_used_gb']:.2f} of "
                 f"{data['vram_total_gb']:.1f} gigabytes used"
             )
+
+        # Temperature
+        if data.get("gpu_temp_available"):
+            parts.append(
+                f"GPU temperature is {data['gpu_temp_c']} degrees Celsius"
+            )
+        if data.get("cpu_temp_available"):
+            parts.append(
+                f"CPU temperature is {data['cpu_temp_c']} degrees Celsius"
+            )
+
+        # Uptime
+        if "uptime_hours" in data:
+            h = data["uptime_hours"]
+            m = data["uptime_minutes"]
+            if h > 0:
+                parts.append(f"system has been running for {h} hours and {m} minutes")
+            else:
+                parts.append(f"system has been running for {m} minutes")
 
         if not parts:
             return "I couldn't retrieve system information."
 
         if len(parts) == 1:
-            return f"{parts[0].capitalize()}."
+            return f"{ToolFormatter._cap_first(parts[0])}."
 
-        return f"{', '.join(parts[:-1])}, and {parts[-1]}."
+        # Two parts: "X and Y."
+        if len(parts) == 2:
+            return f"{ToolFormatter._cap_first(parts[0])} and {parts[1]}."
+
+        # Three or more: "X, Y, and Z."
+        return f"{', '.join(ToolFormatter._cap_first(p) if i == 0 else p for i, p in enumerate(parts[:-1]))}, and {parts[-1]}."
 
     # ── Generic fallback ─────────────────────────────────────
 
@@ -107,3 +142,8 @@ class ToolFormatter:
         if not data:
             return "I completed the action but have no result to report."
         return "I retrieved the information, but I'm not sure how to summarise it."
+    
+    @staticmethod
+    def _cap_first(s: str) -> str:
+        """Uppercase first character only — preserves acronyms like GPU, RAM, VRAM."""
+        return s[0].upper() + s[1:] if s else s
