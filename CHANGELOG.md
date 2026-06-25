@@ -9,8 +9,40 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 4 (remaining)
-- T3: Benchmark & validation (15-query test set, intent accuracy)
+### Planned — Week 5
+- Context window optimisation (skip memory injection on tool path)
+- Model upgrade evaluation (llama3.2:5b if VRAM permits)
+
+---
+
+## [0.8.0] - 2026-06-25
+
+### Added
+- `tests/test_benchmark.py` — Week 4 validation suite
+  - Section 1: 19-query intent classification test (expected vs actual, accuracy score)
+  - Section 2: 7-tool pipeline test (ToolResult correctness, formatted output verification)
+  - Section 3: latency benchmark (20-call intent timing, per-tool dispatch timing, TTFS estimate)
+  - False positive detection with actionable fix suggestions
+
+### Fixed
+- Removed bare `"what time"` from TIME_QUERY patterns — was misclassifying "What time do trains run?" as TIME_QUERY. "What time is it?" still matches via `"what time is it"`
+- Removed bare `"temperature"` from SYSTEM_QUERY patterns — was misclassifying "How is temperature measured?" as SYSTEM_QUERY. "What's the GPU temperature?" still matches via `"gpu temperature"`
+
+### Performance — Final Week 4 Benchmark
+
+| Metric | Result | Target |
+|--------|--------|--------|
+| Intent accuracy | 19/19 (100%) | 100% |
+| Tool pipeline success | 7/7 (100%) | 100% |
+| False positives | 0 | 0 |
+| Intent classification latency | 0.00ms | <5ms |
+| Tool TTFS estimate | 1.37s | ≤1.50s |
+| Tool queries supported | 8 | ≥6 |
+
+### Technical Notes
+- False positives caused by bare trigger words matching as substrings of conversational queries — fixed by requiring specific multi-word phrases throughout intent patterns
+- CPU tool latency ~100ms is expected: `psutil.cpu_percent(interval=0.1)` requires two samples separated by 0.1s to calculate delta usage
+- Tool path TTFS (1.37s) vs chat path TTFS (2.50s) — 1.13s difference from bypassing LLM generation for deterministic queries
 
 ---
 
@@ -228,6 +260,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.5.0 | TTFS measurement + chunked TTS | Week 3 | ✅ Released |
 | 0.6.0 | Agentic tool framework | Week 4 | ✅ Released |
 | 0.7.0 | System monitor + thermal-aware operation | Week 4 | ✅ Released |
+| 0.8.0 | Benchmark suite + false positive fixes | Week 4 | ✅ Released |
 
 ---
 

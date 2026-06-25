@@ -21,7 +21,7 @@
 
 ---
 
-## 🚧 Week 3 (In Progress)
+## ✅ Week 3 (Completed)
 
 - keep_alive cold start fix
 - SQLite memory schema + storage
@@ -30,6 +30,14 @@
 - Orchestrator class refactor
 - TTFS measurement
 - Chunked TTS streaming
+
+---
+
+## ✅ Week 4 (Completed)
+
+- Intent Detection
+- Tool Registration
+- Tool Dispatch
 
 ---
 
