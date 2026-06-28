@@ -295,7 +295,7 @@ class Orchestrator:
         total_turns  = chat_turns + tool_turns
 
         print("\n" + "=" * 55)
-        print("  WEEK 4 BASELINE PERFORMANCE REPORT")
+        print("  WEEK 5 BASELINE PERFORMANCE REPORT")
         print("=" * 55)
         print(f"  Session duration : {session_mins:.1f} min")
         print(f"  Total turns      : {total_turns}  "

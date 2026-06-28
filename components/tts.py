@@ -96,11 +96,30 @@ class TextToSpeech:
         if not text or not text.strip():
             return TTSResult(0.0, 0.0, 0.0, 0)
 
+        text = self._preprocess_for_tts(text)
         sentences = self._split_sentences(text)
         if len(sentences) == 1:
             return self._speak_sequential(sentences[0])
         
         return self._speak_chunked(sentences)
+    
+    # ── TTS Preprocessing ─────────────────────────────────────
+
+    _TTS_REPLACEMENTS = [
+    ("VRAM", "V Ram"),
+    ("RAM",  "Ram"),
+    ]
+
+    def _preprocess_for_tts(self, text: str) -> str:
+        """
+        Convert acronyms to Piper-friendly pronunciation form.
+        Piper reads ALL CAPS as individual letters.
+        RAM → Ram (word), VRAM → V Ram (natural spoken form).
+        CPU/GPU kept as-is — spelling out letters is correct for those.
+        """
+        for original, pronunciation in self._TTS_REPLACEMENTS:
+            text = text.replace(original, pronunciation)
+        return text
     
     def _speak_sequential(self, text: str) -> TTSResult:
         """

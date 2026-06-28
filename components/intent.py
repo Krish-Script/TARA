@@ -62,35 +62,57 @@ class IntentDetector:
                 Intent.TIME_QUERY,
             ),
 
-            # ── System Monitor ────────────────────────────────
-            # Specific multi-word phrases only — avoids misclassifying
-            # "explain how RAM works" or "tell me about CPUs"
+            # ── System Monitor ────────────────────────────────────────
             (
                 [
+                    # CPU
                     "cpu usage",
                     "cpu percent",
+                    "cpu utilization",
+                    "cpu load",
+                    "cpu used",
                     "how much cpu",
-                    "cpu temperature",
-                    "how hot",
-                    "thermal",
+                    "what's my cpu",
+                    "whats my cpu",
+                    "processor usage",
+
+                    # RAM
                     "ram usage",
                     "memory usage",
                     "how much ram",
                     "how much memory",
+
+                    # Disk / Storage
                     "disk usage",
                     "disk space",
                     "how much disk",
+                    "storage",
+                    "how much storage",
+                    "storage left",
+                    "storage space",
+                    "free space",
+
+                    # Battery
                     "battery level",
                     "battery status",
                     "how much battery",
+
+                    # VRAM / GPU
                     "vram usage",
                     "how much vram",
-                    "gpu temperature",
                     "gpu memory",
-                    "system status",
-                    "system stats",
+
+                    # Temperature
+                    "gpu temperature",
+                    "cpu temperature",
                     "gpu temp",
                     "cpu temp",
+                    "how hot",
+                    "thermal",
+
+                    # General
+                    "system status",
+                    "system stats",
                     "computer status",
                 ],
                 Intent.SYSTEM_QUERY,

@@ -9,9 +9,39 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 5
-- Context window optimisation (skip memory injection on tool path)
-- Model upgrade evaluation (llama3.2:5b if VRAM permits)
+### Planned — Week 5 (remaining)
+- T2: Context injection optimisation (skip Stage 1 on tool path)
+- T3: Model evaluation harness
+- T4: Model upgrade evaluation (phi3.5, qwen2.5:3b)
+- T5: Prompt engineering overhaul
+- T6: STT correction layer
+- T7: Midpoint documentation
+
+---
+
+## [0.9.0] - 2026-06-28
+
+### Fixed
+- `components/tts.py` — Piper TTS pronunciation: "RAM" was spoken as "R-A-M" (individual letters) because Piper reads ALL CAPS as initials. Added `_preprocess_for_tts()` which replaces "RAM" → "Ram" and "VRAM" → "V Ram" before text reaches `piper.exe`. CPU and GPU intentionally unchanged — letter-by-letter is correct for those
+- `components/tools/formatter.py` — `.capitalize()` replaced with `_cap_first()` throughout. `str.capitalize()` lowercases all characters after the first, turning "VRAM" into "Vram". `_cap_first()` uppercases only the first character, preserving acronym casing
+- `components/intent.py` — SYSTEM_QUERY patterns extended with storage and CPU variants that were causing LLM misrouting:
+  - Added: "storage", "how much storage", "storage left", "storage space", "free space"
+  - Added: "cpu utilization", "cpu load", "what's my cpu", "processor usage"
+
+### Changed
+- `tests/test_benchmark.py` — three new test cases added covering the misrouted queries:
+  - "What's the CPU utilization?" → SYSTEM_QUERY
+  - "How much storage is left?" → SYSTEM_QUERY
+  - "What's the CPU used?" → SYSTEM_QUERY
+  - Benchmark score: 22/22 (100%)
+
+### Performance
+- Tool path TTFS: 1.59s this session (vs 1.37s Week 4) — session variance from higher STT latency, not regression. Benchmark-estimated TTFS remains 1.37s
+- Intent accuracy: 22/22 (100%) after pattern extensions
+
+### Technical Notes
+- One LLM hallucination incidents during T1 testing confirmed pattern coverage is a safety constraint, not optional: LLM reported 83.5GB free / 1TB for storage (actual: 41GB / 512GB) - fabricated with no uncertainty signal
+- TTS preprocessing order matters: VRAM replaced before RAM to prevent "VRAM" being processed by both rules
 
 ---
 
@@ -261,6 +291,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.6.0 | Agentic tool framework | Week 4 | ✅ Released |
 | 0.7.0 | System monitor + thermal-aware operation | Week 4 | ✅ Released |
 | 0.8.0 | Benchmark suite + false positive fixes | Week 4 | ✅ Released |
+| 0.9.0 | TTS pronunciation fix + intent pattern extension | Week 5 | ✅ Released |
 
 ---
 

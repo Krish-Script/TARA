@@ -41,6 +41,9 @@ INTENT_TEST_CASES = [
     ("How much VRAM am I using?",    Intent.SYSTEM_QUERY, "vram query"),
     ("What's the GPU temperature?",  Intent.SYSTEM_QUERY, "gpu temperature"),
     ("What's my system status?",     Intent.SYSTEM_QUERY, "system status"),
+    ("What's the CPU utilization?",  Intent.SYSTEM_QUERY, "cpu utilization"),
+    ("How much storage is left?",    Intent.SYSTEM_QUERY, "storage query"),
+    ("What's the CPU used?",         Intent.SYSTEM_QUERY, "cpu used variant"),
 
     # ── Time queries — must route to TIME_QUERY ──────────────
     ("What time is it?",             Intent.TIME_QUERY,   "time query"),
