@@ -10,12 +10,33 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 5 (remaining)
-- T2: Context injection optimisation (skip Stage 1 on tool path)
 - T3: Model evaluation harness
 - T4: Model upgrade evaluation (phi3.5, qwen2.5:3b)
 - T5: Prompt engineering overhaul
 - T6: STT correction layer
 - T7: Midpoint documentation
+
+---
+
+## [0.10.0] - 2026-06-26
+
+### Changed
+- `components/orchestrator.py` — Stage 2 (Intent Detection) moved before Stage 1 (Memory Retrieval) in `_run_pipeline()`
+  - Stage 1 (SQLite memory read) now only executes on CHAT intent — tool path queries no longer pay memory retrieval overhead
+  - Stage 2 (keyword routing, 0ms) executes first on every turn
+  - Memory context injection behaviour on CHAT path is unchanged
+
+### Performance
+
+| Metric | Before (0.9.0) | After (0.10.0) | Change |
+|--------|----------------|----------------|--------|
+| TTFS (chat path) | 2.49s | 2.26s | -0.23s |
+| TTFS (tool path) | 1.59s | 1.17s | -0.42s |
+| Stage 1 on tool turns | always | never | ✅ |
+
+### Technical Notes
+- Regression test confirmed: chat-path context injection unaffected after tool-path turns that skip Stage 1
+- Memory recall ("What's my name?" after a CPU query) confirmed correct — cross-path memory integrity preserved
 
 ---
 
@@ -292,6 +313,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.7.0 | System monitor + thermal-aware operation | Week 4 | ✅ Released |
 | 0.8.0 | Benchmark suite + false positive fixes | Week 4 | ✅ Released |
 | 0.9.0 | TTS pronunciation fix + intent pattern extension | Week 5 | ✅ Released |
+| 0.10.0 | Stage ordering optimisation — memory skip on tool path | Week 5 | ✅ Released |
 
 ---
 

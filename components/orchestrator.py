@@ -194,26 +194,22 @@ class Orchestrator:
     # ── Pipeline ─────────────────────────────────────────────
 
     def _run_pipeline(self, text: str, stt_latency: float) -> bool:
-        """
-        Full response pipeline for a normal conversation turn.
 
-        Stages are clearly marked so future additions have obvious
-        insertion points. See module docstring for the full stage map.
-        """
-
-        # ── Stage 1: Memory Context Retrieval ────────────────
-        memory_context = self.memory.build_context(
-            session_id=None,
-            recent_turns=self.memory_config["context_turns"],
-            fact_limit=self.memory_config["fact_limit"],
-        )
-
-        # ── Stage 2: Intent Detection──────
+        # ── Stage 2: Intent Detection (0ms — moved first) ────────
         intent, matched = self.intent_detector.classify_with_confidence(text)
         if intent != Intent.CHAT:
             print(f"[Intent] {intent.name}  (matched: '{matched}')")
 
-        # ── Stage 3: Tool Execution────────
+        # ── Stage 1: Memory Context (CHAT path only) ─────────────
+        memory_context = ""
+        if intent == Intent.CHAT:
+            memory_context = self.memory.build_context(
+                session_id=None,
+                recent_turns=self.memory_config["context_turns"],
+                fact_limit=self.memory_config["fact_limit"],
+            )
+
+        # ── Stage 3: Tool Execution ───────────────────────────────
         if intent != Intent.CHAT:
             tool_result = self.tool_registry.dispatch(intent, text)
             if tool_result:
@@ -224,8 +220,8 @@ class Orchestrator:
                 self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
                 self.stats["tts"].append(tts_result.total_latency)
                 ttfs = stt_latency + tts_result.synthesis_latency
-                self.stats["tool_latency"].append(tool_result.latency)
                 self.stats["ttfs_tool"].append(ttfs)
+                self.stats["tool_latency"].append(tool_result.latency)
                 print(f"       ── TTFS: {ttfs:.2f}s ──")
                 self.memory.save_turn(
                     session_id=self.session_id,
@@ -234,10 +230,7 @@ class Orchestrator:
                 )
                 return True
 
-        # ── Stage 4: RAG Retrieval [FUTURE — Week 5] ─────────
-        # Placeholder for future RAG retrieval stage.
-
-        # ── Stage 5: LLM Generation ──────────────────────────
+        # ── Stage 5: LLM Generation (CHAT path only) ─────────────
         print("[Thinking...]")
         response, llm_latency = self.llm.generate(
             text, memory_context=memory_context
@@ -246,11 +239,7 @@ class Orchestrator:
         print(f"       LLM latency: {llm_latency:.2f}s")
         self.stats["llm"].append(llm_latency)
 
-        # ── Stage 6: Response Delivery (Chunked TTS) ───────
-        # Splits response at sentence boundaries.
-        # Producer thread synthesises each chunk with piper.exe.
-        # Consumer thread plays chunks as they arrive.
-        # synthesis_latency = first-chunk time only (TTFS component).
+        # ── Stage 6: Response Delivery ────────────────────────────
         tts_result = self.tts.speak(response)
         print(f"       TTS chunks:    {tts_result.chunks}")
         print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s  ← first chunk (TTFS)")
@@ -259,12 +248,11 @@ class Orchestrator:
         self.stats["tts"].append(tts_result.total_latency)
         self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
 
-        # TTFS = silence between user finishing speaking and TARA starting
         ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
         self.stats["ttfs"].append(ttfs)
         print(f"       ── TTFS: {ttfs:.2f}s ──")
 
-        # ── Stage 7: Persistence ──────────────────────────────
+        # ── Stage 7: Persistence ──────────────────────────────────
         self.memory.save_turn(
             session_id=self.session_id,
             user_message=text,
