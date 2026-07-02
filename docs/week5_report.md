@@ -3,128 +3,110 @@
 
 **Sprint duration:** Week 5 of 10  
 **Primary goal:** Evaluation harness before model upgrade. Fix known bugs before adding complexity.  
-**Status:** 🔄 In Progress (T1–T2 complete, T3–T7 pending)
+**Status:** 🔄 In Progress (T1–T4 complete, T5–T7 pending)
 
 ---
 
 ## Sprint Summary
 
-Week 5 opened with three known bugs from Week 4 and surfaced two more during T1 testing. All five were fixed before new features were added. T2 restructured the pipeline stage order — intent detection now runs before memory retrieval, eliminating SQLite overhead on the tool path.
+Week 5 established the first quantitative quality baseline for TARA and made the first evidence-based model upgrade decision in the project. Every previous quality assessment — including "few-shot prompting works" from Week 2 — was based on impression rather than measurement. T3 changed that.
 
-The recurring finding this week: LLM hardware hallucination is systematic, not occasional. Storage, CPU utilisation, and temperature all produced fabricated values when queries fell through to the LLM. Pattern coverage is a correctness constraint, not a quality-of-life improvement.
+The model upgrade decision (llama3.2:3b → qwen2.5:3b) was made entirely from harness data, not from subjective impressions during testing. The decision rule was set before running T4: upgrade only if Category A score matches baseline AND chat TTFS stays under 2.80s. qwen2.5:3b met both criteria. phi3.5 was eliminated on two independent grounds.
 
 ---
 
-## Performance Baseline
+## Final Performance Baseline — T4
 
-| Metric | Week 4 | Week 5 T1 | Week 5 T2 | Change |
-|--------|--------|-----------|-----------|--------|
-| STT avg | 0.69s | 0.79s | 0.66s | stable |
-| LLM avg (chat) | 0.94s | 1.02s | 0.98s | stable |
-| Tool execution avg | 25.3ms | 0.002s | 0.101s | stable |
-| TTS synthesis avg | 0.72s | 0.73s | 0.58s | -0.14s |
-| TTFS (chat path) | 2.50s | 2.49s | **2.26s** | **-0.24s** |
-| TTFS (tool path) | 1.37s | 1.59s | **1.17s** | **back on target** |
-| Intent accuracy | 19/19 | 22/22 | 22/22 | stable |
+| Metric | Week 4 | Week 5 (qwen2.5:3b) | Change |
+|--------|--------|---------------------|--------|
+| STT avg | 0.69s | 0.59s | -0.10s |
+| LLM avg (chat) | 0.94s | 1.04s | +0.10s |
+| TTS synthesis avg | 0.72s | 0.66s | -0.06s |
+| TTFS (chat path) | 2.50s | **2.30s** | **-0.20s** |
+| TTFS (tool path) | 1.37s | 1.37s | stable |
+| keep_alive confirmed | ✅ | ✅ | 7.5 min idle test |
+| Intent accuracy | 22/22 | 22/22 | unaffected by model swap |
 
-Chat path TTFS improved 0.24s from T1 to T2 — direct result of skipping Stage 1 memory retrieval on non-CHAT turns.
+LLM latency increased +0.10s but TTFS improved -0.20s. The improvement comes from qwen2.5:3b's shorter average responses (24.4 vs 29.0 words) reducing TTS synthesis time — same compounding effect observed in Week 2 when prompt engineering cut response length.
 
 ---
 
 ## What Was Built
 
-### T1 — Bug Fixes (three issues)
+### T1 — Bug Fixes
 
-**1. TTS pronunciation preprocessing**
-Piper reads ALL CAPS as individual letters. "RAM" → "R-A-M", "VRAM" → "V-R-A-M". Added `_preprocess_for_tts()` in `components/tts.py`:
+**TTS pronunciation preprocessing** — `_preprocess_for_tts()` in `components/tts.py`. "RAM" → "Ram", "VRAM" → "V Ram". CPU/GPU intentionally omitted — letter-by-letter is correct for those. VRAM replaced before RAM to prevent partial-match corruption.
 
-```python
-_TTS_REPLACEMENTS = [
-    ("VRAM", "V Ram"),   # spoken naturally as "V-Ram"
-    ("RAM",  "Ram"),     # spoken as a word, not R-A-M
-]
-```
+**`_cap_first()` replacing `.capitalize()`** — Python's `.capitalize()` lowercases all characters after the first. "VRAM is..." → "Vram is...". `_cap_first()` uppercases index 0 only.
 
-VRAM replaced before RAM — order prevents partial-match corruption. CPU/GPU intentionally omitted — letter-by-letter is correct for those.
-
-**2. `.capitalize()` → `_cap_first()`**
-`str.capitalize()` lowercases all characters after the first — "VRAM is..." → "Vram is...". Replaced throughout `formatter.py` with `_cap_first()` which uppercases only index 0.
-
-**3. Intent pattern extensions**
-Two LLM hallucination incidents during testing identified missing patterns:
-
-| Missing query | LLM fabricated | Actual |
-|---------------|---------------|--------|
-| "How much storage is left?" | 83.5GB free / 1TB | 41GB free / 512GB |
-| "For the CPU utilization" | 57% | 26% |
-| "What's the CPU used?" | 57% | 26% |
-
-Added to SYSTEM_QUERY patterns: "storage", "how much storage", "storage left", "storage space", "free space", "cpu utilization", "cpu load", "what's my cpu", "processor usage".
-
-Benchmark extended from 19 to 22 test cases. Score: 22/22 (100%).
-
----
+**Intent pattern extensions** — Three LLM hallucination incidents identified missing patterns. Storage queries and CPU utilisation variants added. Benchmark extended to 22 test cases, score: 22/22.
 
 ### T2 — Context Injection Optimisation
 
-**Problem:** Stage 1 (memory retrieval) ran before Stage 2 (intent detection). Every tool query paid SQLite read overhead that contributed nothing to the response — tool handlers never use LLM context.
+Stage 2 (intent detection, 0ms) moved before Stage 1 (memory retrieval) in `_run_pipeline()`. Memory context now only built for CHAT intent.
 
-**Fix:** Reordered `_run_pipeline()` in `orchestrator.py`:
+Result: Chat TTFS 2.49s → 2.26s (-0.23s). Tool TTFS 1.59s → 1.17s (-0.42s). Regression test confirmed cross-path memory integrity — chat recall unaffected by intervening tool turns.
 
-```
-Before: Stage 1 (memory) → Stage 2 (intent) → Stage 3 or Stage 5
-After:  Stage 2 (intent, 0ms) → Stage 1 (memory, CHAT only) → Stage 3 or Stage 5
-```
+### T3 — Model Evaluation Harness
 
-**Regression test (4 turns):**
+`tests/test_model_eval.py` — 15-query harness across three categories. Identified a scorer bug (digit "2" vs word "two") and a semantic failure (model overriding injected VRAM fact with its own prior). Both corrected before T4.
 
-| Turn | Query | Path | Stage 1 fired | TARA response |
-|------|-------|------|---------------|---------------|
-| 1 | "My name is Krishna and you." | CHAT | ✅ Yes | Introduced as TARA, addressed Krishna |
-| 2 | "What's my CPU usage?" | SYSTEM_QUERY | ❌ No | CPU is at 51 percent (tool) |
-| 3 | "What do you remember about me?" | command registry | ❌ No | Recalled stored facts correctly |
-| 4 | "What's my name?" | CHAT | ✅ Yes | "Your name is Krishna" — correct recall |
+**Corrected llama3.2:3b baseline:**
 
-Turn 4 confirmed memory integrity: chat-path context injection works correctly after a tool-path turn that skipped Stage 1.
+| Category | Score | Notes |
+|----------|-------|-------|
+| A — Format compliance | 5/5 | All responses 1 sentence, no markdown |
+| B — Context recall | 5/5 | After scorer bug fix |
+| C — Avg word count | 29.0 words | Well under 35-word target |
+| LLM latency | 0.93s | Warm inference |
 
-**Observed benefit:**
-- Chat path TTFS: 2.49s → 2.26s (-0.23s)
-- Tool path TTFS: 1.59s → 1.17s (-0.42s)
+### T4 — Model Upgrade Evaluation
+
+**Decision table:**
+
+| Metric | llama3.2:3b | phi3.5 | qwen2.5:3b |
+|--------|-------------|--------|------------|
+| Category A | 5/5 | **2/5** | 5/5 |
+| Category B | 5/5 | 4/5 | 5/5 |
+| Category C avg | 29.0w | 34.0w | **24.4w** |
+| Warm LLM latency | 0.93s | 2.80s | 0.85s |
+| Chat TTFS | 2.50s | — | **2.30s** |
+| Decision | baseline | **REJECT** | **UPGRADE** |
+
+**phi3.5 eliminated on two independent grounds:**
+1. Category A 2/5 — fails the upgrade rule outright
+2. Self-commentary appended to responses ("Note: The above response meets the criteria...") — would be spoken aloud by Piper, making it a TTS compatibility failure
+
+**qwen2.5:3b upgrade justified:**
+- Matches llama3.2:3b on every quality metric
+- 24.4 avg words (16% shorter — directly reduces TTS latency)
+- keep_alive confirmed working across 7.5-minute idle test
+- 22/22 intent benchmark unaffected after model swap
 
 ---
 
-## Known Limitation — STT Name Recognition
+## Hallucination Log — T1
 
-Whisper base model consistently mishears "Krishnendu" as "Krishna". Root cause: South Asian names are underrepresented in the base model's training data. T6 (STT correction layer) addresses this directly:
-
-```python
-_STT_CORRECTIONS = {
-    "so much":  "how much",
-    "so many":  "how many",
-    "krishna":  "krishnendu",   # STT consistently mishears
-}
-```
-
-Documented caveat: "Krishna" is also a standalone proper noun (deity, common name). This correction will silently corrupt queries containing "Krishna" in a non-name context. Acceptable risk for personal assistant use; flagged for documentation.
+| Query | Routed to | LLM Response | Actual | Error |
+|-------|-----------|-------------|--------|-------|
+| "How much storage is left?" | LLM | 83.5GB free / 1TB | 41GB / 512GB | Both figures fabricated |
+| "For the CPU utilization" | LLM | 57% | 26% | 2.2× wrong |
+| "What's the CPU used?" | LLM | 57% | 26% | 2.2× wrong |
 
 ---
 
 ## Pending Tasks
 
-| Task | Description | Est. |
-|------|-------------|------|
-| T3 | Model evaluation harness — baseline llama3.2:3b | 2.0h |
-| T4 | Model upgrade evaluation — phi3.5 and qwen2.5:3b | 2.0h |
-| T5 | Prompt engineering overhaul — format compliance | 2.0h |
-| T6 | STT post-recognition correction layer | 1.0h |
-| T7 | Midpoint documentation — README + research notes | 1.0h |
-
-**Non-negotiable:** T3 before T4. Baseline scores for llama3.2:3b must exist before evaluating candidates. Evidence first, decision second.
+| Task | Description |
+|------|-------------|
+| T5 | Prompt engineering overhaul — verify format compliance holds on qwen2.5:3b |
+| T6 | STT post-recognition correction layer |
+| T7 | Midpoint documentation — README + research notes |
 
 ---
 
 ## Lessons Learned
 
-- **LLM hardware hallucination is systematic.** Storage, CPU, and temperature all fabricated values when patterns were missing. The LLM produces plausible-sounding numbers with zero uncertainty signal. Pattern coverage is a correctness constraint.
-- **Stage ordering has measurable impact.** Moving intent detection before memory retrieval cost zero new code and reduced chat path TTFS by 0.23s. Pipeline stage order is an architectural decision, not an implementation detail.
-- **Test with real queries.** "How much storage is left?" and "What's the CPU used?" are natural phrasings never covered by designed test cases. Benchmark accuracy means nothing if the test set doesn't include real usage patterns.
+- **Evaluation before upgrade is not bureaucracy — it's how you avoid regressing.** phi3.5 failed on format compliance and would have been a clear regression from llama3.2:3b. Without the harness, that wouldn't have been known until Week 6 when responses started coming back with self-commentary spoken aloud.
+- **Scorer bugs invalidate baseline data.** Category B[4] produced a false FAIL (digit "2" vs word "two") and B[5] produced a false PASS (model argued with injected fact but "4" appeared). Both required manual identification. Automatic scorers need edge case testing.
+- **Shorter responses improve TTFS more reliably than faster models.** qwen2.5:3b's LLM latency is +0.10s slower than llama3.2:3b but TTFS improved -0.20s because 4.6 fewer words per response reduces TTS synthesis time. Output length is a more reliable latency lever than model speed on this hardware.

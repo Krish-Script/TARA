@@ -10,11 +10,55 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 5 (remaining)
-- T3: Model evaluation harness
-- T4: Model upgrade evaluation (phi3.5, qwen2.5:3b)
-- T5: Prompt engineering overhaul
+- T5: Prompt engineering verification on qwen2.5:3b
 - T6: STT correction layer
-- T7: Midpoint documentation
+- T7: Midpoint README + research notes
+
+### Planned — Week 6
+- File management tool (stated requirement in project objective — currently missing)
+- Information retrieval tool
+
+---
+
+## [0.11.0] - 2026-07-01
+
+### Changed
+- `config.py` — LLM model upgraded from `llama3.2:3b` to `qwen2.5:3b`
+
+### Added
+- `tests/test_model_eval.py` — model evaluation harness
+  - Category A: 5-prompt format compliance test (manual grading)
+  - Category B: 5-pair context recall test (automatic keyword scoring)
+  - Category C: 5-prompt verbosity stress test (word count distribution)
+  - Appends results to `docs/model_evaluation.txt` for cross-model comparison
+- `docs/model_evaluation.txt` — evaluation results for all three models
+
+### Model Evaluation Results
+
+| Metric | llama3.2:3b | phi3.5 | qwen2.5:3b |
+|--------|-------------|--------|------------|
+| Category A — Format compliance | 5/5 | 2/5 | 5/5 |
+| Category B — Context recall | 5/5 | 4/5 | 5/5 |
+| Category C — Avg word count | 29.0w | 34.0w | 24.4w |
+| Warm LLM latency | 0.93s | 2.80s | 0.85s |
+| Chat TTFS | 2.50s | rejected | 2.30s |
+
+### Decision rationale
+- phi3.5 rejected: Category A 2/5 (fails upgrade rule); self-commentary appended to responses would be spoken aloud by Piper TTS
+- qwen2.5:3b selected: matches baseline on all quality metrics; 16% shorter responses reduce TTS latency; keep_alive confirmed over 7.5-minute idle test; 22/22 intent benchmark unaffected
+
+### Performance
+
+| Metric | Before (llama3.2:3b) | After (qwen2.5:3b) | Change |
+|--------|---------------------|---------------------|--------|
+| LLM avg latency | 0.93s | 1.04s | +0.11s |
+| Chat TTFS | 2.50s | 2.30s | **-0.20s** |
+| Avg response length | 29.0w | 24.4w | -4.6w |
+
+### Technical Notes
+- LLM latency increased +0.11s but TTFS improved -0.20s — shorter responses reduce TTS synthesis time, more than offsetting the generation cost increase
+- Scorer bug found in T3: Category B checked for digit "2" instead of word "two" — corrected before T4 evaluation
+- Model override failure observed on llama3.2:3b (B[5]): model argued with injected VRAM fact, substituting its own prior — documented as known small-model limitation
 
 ---
 
@@ -314,6 +358,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.8.0 | Benchmark suite + false positive fixes | Week 4 | ✅ Released |
 | 0.9.0 | TTS pronunciation fix + intent pattern extension | Week 5 | ✅ Released |
 | 0.10.0 | Stage ordering optimisation — memory skip on tool path | Week 5 | ✅ Released |
+| 0.11.0 | Model upgrade to qwen2.5:3b (evaluation-based) | Week 5 | ✅ Released |
 
 ---
 

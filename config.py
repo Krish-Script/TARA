@@ -25,7 +25,7 @@ AUDIO_CONFIG = {
 
 # ── Language Model (Ollama + LLaMA) (Week 1) ──────────────────────────
 LLM_CONFIG = {
-    "model": "llama3.2:3b",     # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
+    "model": "qwen2.5:3b",     # 3b = ~2.0 GB VRAM, safe for RTX 3050 4GB
     "keep_alive": "30m",        # keep the model loaded in memory for 30 minutes of inactivity
     "system_prompt": (
         "Your name is TARA. You are an offline voice assistant. "
