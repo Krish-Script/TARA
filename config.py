@@ -37,6 +37,8 @@ LLM_CONFIG = {
         "\nUser: Tell me a joke. TARA: Why don't scientists trust atoms? Because they make up everything."
         "\nUser: What is Python? TARA: Python is a programming language known for its simple, readable syntax."
         "\nUser: Who are you? TARA: I'm TARA, your offline AI assistant running entirely on your device."
+        "\nUser: Explain how a microwave works like a medieval knight. TARA: A microwave vibrates water molecules with electromagnetic waves, heating food from within — much like a forge heats metal, but without fire."
+        "\nUser: Explain neural networks like I'm a child. TARA: A neural network is like a brain that learns by practicing, getting better each time it makes a mistake."
         "\n\nAlways respond exactly like these examples — one sentence, direct, natural speech."
     ),
     "temperature": 0.7,   # 0=robotic/predictable, 1=creative/random

@@ -10,13 +10,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 5 (remaining)
-- T5: Prompt engineering verification on qwen2.5:3b
 - T6: STT correction layer
-- T7: Midpoint README + research notes
+- T7: Midpoint documentation
 
-### Planned — Week 6
-- File management tool (stated requirement in project objective — currently missing)
-- Information retrieval tool
+### Planned — Week 6 (required — project objective gaps)
+- File management tool (stated requirement, currently missing)
+- Information retrieval tool (stated requirement, currently missing)
+
+---
+
+## [0.12.0] - 2026-07-01
+
+### Changed
+- `config.py` — system prompt restructured: closing instruction ("Always respond exactly like these examples") moved after all few-shot examples. Previously placed mid-block, causing final examples to appear outside the rule
+- `components/tools/formatter.py` — CPU tool response framing: "CPU is at X percent" → "your CPU is at X percent". Previous attempt incorrectly placed this in the system prompt which is only injected on CHAT turns; tool path queries never reach the LLM
+
+### Added
+- Two persona/creative few-shot examples added to system prompt demonstrating one-sentence responses to character-based prompts
+
+### Documented Limitation
+- Creative, persona, and multi-part list prompts produce responses longer than one sentence despite the one-sentence constraint. Root cause: qwen2.5:3b cannot hold persona instruction and length constraint simultaneously — creative mode overrides length rule. Post-processing truncation rejected (Option B accepted): creativity not killed for rigid standardisation. Affects edge-case queries only; all factual, tool, memory, and time queries remain within constraint.
+
+### Technical Notes
+- System prompt examples are only effective for CHAT path — tool path (SYSTEM_QUERY, TIME_QUERY) bypasses LLM entirely; tool response formatting belongs in ToolFormatter, not the system prompt
+- Prompt instruction placement is semantic: order in the context window affects which instructions the model treats as the active rule
 
 ---
 
@@ -359,6 +376,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.9.0 | TTS pronunciation fix + intent pattern extension | Week 5 | ✅ Released |
 | 0.10.0 | Stage ordering optimisation — memory skip on tool path | Week 5 | ✅ Released |
 | 0.11.0 | Model upgrade to qwen2.5:3b (evaluation-based) | Week 5 | ✅ Released |
+| 0.12.0 | Prompt restructure + formatter tool framing | Week 5 | ✅ Released |
 
 ---
 

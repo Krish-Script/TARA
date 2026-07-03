@@ -68,19 +68,19 @@ class ToolFormatter:
 
         # CPU
         if "cpu_percent" in data:
-            parts.append(f"CPU is at {data['cpu_percent']:.0f} percent")
+            parts.append(f"Your CPU is at {data['cpu_percent']:.0f} percent")
 
         # RAM
         if "ram_used_gb" in data and "ram_total_gb" in data:
             parts.append(
-                f"RAM is {data['ram_used_gb']:.1f} of "
+                f"Your RAM is {data['ram_used_gb']:.1f} of "
                 f"{data['ram_total_gb']:.0f} gigabytes used"
             )
 
         # Disk
         if "disk_free_gb" in data:
             parts.append(
-                f"disk has {data['disk_free_gb']:.0f} gigabytes free"
+                f"Your disk has {data['disk_free_gb']:.0f} gigabytes free"
             )
 
         # Battery
@@ -89,7 +89,7 @@ class ToolFormatter:
         elif "battery_percent" in data:
             status = "charging" if data.get("charging") else "not charging"
             parts.append(
-                f"battery is at {data['battery_percent']:.0f} percent "
+                f"Your battery is at {data['battery_percent']:.0f} percent "
                 f"and {status}"
             )
 
@@ -98,18 +98,18 @@ class ToolFormatter:
             parts.append("GPU metrics are unavailable")
         elif "vram_used_gb" in data and "vram_total_gb" in data:
             parts.append(
-                f"VRAM is {data['vram_used_gb']:.2f} of "
+                f"Your VRAM is {data['vram_used_gb']:.2f} of "
                 f"{data['vram_total_gb']:.1f} gigabytes used"
             )
 
         # Temperature
         if data.get("gpu_temp_available"):
             parts.append(
-                f"GPU temperature is {data['gpu_temp_c']} degrees Celsius"
+                f"Your GPU temperature is {data['gpu_temp_c']} degrees Celsius"
             )
         if data.get("cpu_temp_available"):
             parts.append(
-                f"CPU temperature is {data['cpu_temp_c']} degrees Celsius"
+                f"Your CPU temperature is {data['cpu_temp_c']} degrees Celsius"
             )
 
         # Uptime
@@ -117,9 +117,9 @@ class ToolFormatter:
             h = data["uptime_hours"]
             m = data["uptime_minutes"]
             if h > 0:
-                parts.append(f"system has been running for {h} hours and {m} minutes")
+                parts.append(f"Your system has been running for {h} hours and {m} minutes")
             else:
-                parts.append(f"system has been running for {m} minutes")
+                parts.append(f"Your system has been running for {m} minutes")
 
         if not parts:
             return "I couldn't retrieve system information."

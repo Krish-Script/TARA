@@ -3,31 +3,35 @@
 
 **Sprint duration:** Week 5 of 10  
 **Primary goal:** Evaluation harness before model upgrade. Fix known bugs before adding complexity.  
-**Status:** 🔄 In Progress (T1–T4 complete, T5–T7 pending)
+**Status:** 🔄 In Progress (T1–T5 complete, T6–T7 pending)
+
+---
+
+## Uncomfortable truth
+
+The project objective lists "file management" as a key functional requirement under agentic tool execution. At the halfway point of the 10-week sprint, zero file management capability exists. This is not a stretch goal that slipped — it is a stated requirement. Week 6 must open with it.
 
 ---
 
 ## Sprint Summary
 
-Week 5 established the first quantitative quality baseline for TARA and made the first evidence-based model upgrade decision in the project. Every previous quality assessment — including "few-shot prompting works" from Week 2 — was based on impression rather than measurement. T3 changed that.
+Week 5 established the first quantitative quality baseline for TARA and made the first evidence-based model upgrade decision in the project. Every previous quality assessment was based on impression. T3 changed that. The model upgrade (llama3.2:3b → qwen2.5:3b) was decided entirely from harness scores, not from subjective impressions during testing.
 
-The model upgrade decision (llama3.2:3b → qwen2.5:3b) was made entirely from harness data, not from subjective impressions during testing. The decision rule was set before running T4: upgrade only if Category A score matches baseline AND chat TTFS stays under 2.80s. qwen2.5:3b met both criteria. phi3.5 was eliminated on two independent grounds.
+T5 surfaced a model capability ceiling: qwen2.5:3b cannot reliably hold two conflicting instructions simultaneously — "respond in character as X" and "maximum one sentence." The decision was made to accept this as a documented limitation rather than apply post-processing truncation. The reasoning: TARA is a productivity assistant, not a creative writing tool. Persona prompts are edge cases. Creativity should not be killed for rigid standardisation.
 
 ---
 
-## Final Performance Baseline — T4
+## Final Performance Baseline
 
-| Metric | Week 4 | Week 5 (qwen2.5:3b) | Change |
-|--------|--------|---------------------|--------|
-| STT avg | 0.69s | 0.59s | -0.10s |
-| LLM avg (chat) | 0.94s | 1.04s | +0.10s |
-| TTS synthesis avg | 0.72s | 0.66s | -0.06s |
-| TTFS (chat path) | 2.50s | **2.30s** | **-0.20s** |
-| TTFS (tool path) | 1.37s | 1.37s | stable |
-| keep_alive confirmed | ✅ | ✅ | 7.5 min idle test |
-| Intent accuracy | 22/22 | 22/22 | unaffected by model swap |
-
-LLM latency increased +0.10s but TTFS improved -0.20s. The improvement comes from qwen2.5:3b's shorter average responses (24.4 vs 29.0 words) reducing TTS synthesis time — same compounding effect observed in Week 2 when prompt engineering cut response length.
+| Metric | Week 4 | Week 5 | Change |
+|--------|--------|--------|--------|
+| STT avg | 0.69s | 0.72s | stable |
+| LLM avg (chat, normal queries) | 0.94s | 1.04s | +0.10s |
+| TTS synthesis avg | 0.72s | 0.78s | stable |
+| TTFS (chat path, normal queries) | 2.50s | 2.30s | **-0.20s** |
+| TTFS (tool path) | 1.37s | 1.25s | **-0.12s** |
+| Intent accuracy | 22/22 | 22/22 | stable |
+| Model | llama3.2:3b | qwen2.5:3b | upgraded |
 
 ---
 
@@ -35,34 +39,38 @@ LLM latency increased +0.10s but TTFS improved -0.20s. The improvement comes fro
 
 ### T1 — Bug Fixes
 
-**TTS pronunciation preprocessing** — `_preprocess_for_tts()` in `components/tts.py`. "RAM" → "Ram", "VRAM" → "V Ram". CPU/GPU intentionally omitted — letter-by-letter is correct for those. VRAM replaced before RAM to prevent partial-match corruption.
+**TTS pronunciation preprocessing** — `_preprocess_for_tts()` in `components/tts.py`. VRAM replaced before RAM to prevent partial-match corruption. CPU/GPU omitted — letter-by-letter is correct pronunciation for those.
 
-**`_cap_first()` replacing `.capitalize()`** — Python's `.capitalize()` lowercases all characters after the first. "VRAM is..." → "Vram is...". `_cap_first()` uppercases index 0 only.
+**`_cap_first()` replacing `.capitalize()`** — `str.capitalize()` lowercases all characters after the first. "VRAM is..." → "Vram is...". `_cap_first()` uppercases index 0 only.
 
-**Intent pattern extensions** — Three LLM hallucination incidents identified missing patterns. Storage queries and CPU utilisation variants added. Benchmark extended to 22 test cases, score: 22/22.
+**Intent pattern extensions** — Three LLM hallucination incidents identified missing patterns (storage, CPU utilisation variants). Benchmark extended to 22 cases, 22/22 (100%).
+
+---
 
 ### T2 — Context Injection Optimisation
 
 Stage 2 (intent detection, 0ms) moved before Stage 1 (memory retrieval) in `_run_pipeline()`. Memory context now only built for CHAT intent.
 
-Result: Chat TTFS 2.49s → 2.26s (-0.23s). Tool TTFS 1.59s → 1.17s (-0.42s). Regression test confirmed cross-path memory integrity — chat recall unaffected by intervening tool turns.
+Result: Chat TTFS 2.49s → 2.26s. Tool TTFS 1.59s → 1.17s. Cross-path memory integrity confirmed — chat recall unaffected by intervening tool turns.
+
+---
 
 ### T3 — Model Evaluation Harness
 
-`tests/test_model_eval.py` — 15-query harness across three categories. Identified a scorer bug (digit "2" vs word "two") and a semantic failure (model overriding injected VRAM fact with its own prior). Both corrected before T4.
+`tests/test_model_eval.py` — 15-query harness, three categories. Identified scorer bug (digit "2" vs word "two") and semantic failure (model arguing with injected VRAM fact). Both corrected before T4.
 
-**Corrected llama3.2:3b baseline:**
+**llama3.2:3b baseline (corrected):**
 
-| Category | Score | Notes |
-|----------|-------|-------|
-| A — Format compliance | 5/5 | All responses 1 sentence, no markdown |
-| B — Context recall | 5/5 | After scorer bug fix |
-| C — Avg word count | 29.0 words | Well under 35-word target |
-| LLM latency | 0.93s | Warm inference |
+| Category | Score |
+|----------|-------|
+| A — Format compliance | 5/5 |
+| B — Context recall | 5/5 |
+| C — Avg word count | 29.0 words |
+| LLM warm latency | 0.93s |
+
+---
 
 ### T4 — Model Upgrade Evaluation
-
-**Decision table:**
 
 | Metric | llama3.2:3b | phi3.5 | qwen2.5:3b |
 |--------|-------------|--------|------------|
@@ -70,24 +78,29 @@ Result: Chat TTFS 2.49s → 2.26s (-0.23s). Tool TTFS 1.59s → 1.17s (-0.42s). 
 | Category B | 5/5 | 4/5 | 5/5 |
 | Category C avg | 29.0w | 34.0w | **24.4w** |
 | Warm LLM latency | 0.93s | 2.80s | 0.85s |
-| Chat TTFS | 2.50s | — | **2.30s** |
-| Decision | baseline | **REJECT** | **UPGRADE** |
+| Chat TTFS | 2.50s | rejected | **2.30s** |
 
-**phi3.5 eliminated on two independent grounds:**
-1. Category A 2/5 — fails the upgrade rule outright
-2. Self-commentary appended to responses ("Note: The above response meets the criteria...") — would be spoken aloud by Piper, making it a TTS compatibility failure
+phi3.5 eliminated on two independent grounds: Category A 2/5 (fails upgrade rule); self-commentary appended to responses would be spoken aloud by Piper ("Note: The above response meets the criteria..."). qwen2.5:3b selected — 16% shorter responses, same quality scores, keep_alive confirmed over 7.5-minute idle test, 22/22 intent benchmark unaffected.
 
-**qwen2.5:3b upgrade justified:**
-- Matches llama3.2:3b on every quality metric
-- 24.4 avg words (16% shorter — directly reduces TTS latency)
-- keep_alive confirmed working across 7.5-minute idle test
-- 22/22 intent benchmark unaffected after model swap
+---
+
+### T5 — Prompt Engineering
+
+**System prompt restructured.** Closing instruction ("Always respond exactly like these examples") was placed before the three new few-shot examples added during testing, causing the model to read them as outside the rule. Instruction moved to the end of the example block.
+
+**Formatter tool framing fix.** CPU tool framing example ("Your CPU is running at 51 percent right now") was added to the system prompt — which is injected only on CHAT turns. Tool path queries never reach the LLM. Fix applied correctly in `components/tools/formatter.py` instead: "CPU is at" → "your CPU is at".
+
+**Creative length — documented limitation (Option B).** Persona and "explain like" prompts consistently produced 40-80 word multi-sentence responses despite the one-sentence constraint. Two additional few-shot examples were added demonstrating short persona responses. Effect: marginal.
+
+Root cause: qwen2.5:3b cannot hold "respond in character as X" and "maximum one sentence" simultaneously. The creative persona instruction activates an elaboration mode that overrides the length constraint. Post-processing truncation (Option A) was considered and rejected — creativity should not be killed for rigid standardisation on a productivity assistant where persona prompts are edge cases.
+
+**Documented limitation:** Creative, persona, and multi-part list prompts may produce responses longer than one sentence. All factual, system monitoring, memory, and time queries behave within the one-sentence constraint.
 
 ---
 
 ## Hallucination Log — T1
 
-| Query | Routed to | LLM Response | Actual | Error |
+| Query | Routed to | LLM response | Actual | Error |
 |-------|-----------|-------------|--------|-------|
 | "How much storage is left?" | LLM | 83.5GB free / 1TB | 41GB / 512GB | Both figures fabricated |
 | "For the CPU utilization" | LLM | 57% | 26% | 2.2× wrong |
@@ -99,14 +112,34 @@ Result: Chat TTFS 2.49s → 2.26s (-0.23s). Tool TTFS 1.59s → 1.17s (-0.42s). 
 
 | Task | Description |
 |------|-------------|
-| T5 | Prompt engineering overhaul — verify format compliance holds on qwen2.5:3b |
 | T6 | STT post-recognition correction layer |
 | T7 | Midpoint documentation — README + research notes |
 
 ---
 
+## Open Gap — Project Objective vs Implementation
+
+| Stated requirement | Status |
+|-------------------|--------|
+| Real-time voice input | ✅ |
+| Offline speech recognition | ✅ |
+| Local LLM inference | ✅ |
+| Context-aware dialogue management | ✅ |
+| System monitoring | ✅ |
+| **File management** | **❌ Not built** |
+| **Information retrieval** | **❌ Not built** |
+| Natural voice response | ✅ |
+| Modular architecture | ✅ |
+| Thermal-aware operation | ✅ (GPU temp) |
+| Resource-efficient operation | ✅ |
+
+File management and information retrieval are Week 6 priorities, not optional features.
+
+---
+
 ## Lessons Learned
 
-- **Evaluation before upgrade is not bureaucracy — it's how you avoid regressing.** phi3.5 failed on format compliance and would have been a clear regression from llama3.2:3b. Without the harness, that wouldn't have been known until Week 6 when responses started coming back with self-commentary spoken aloud.
-- **Scorer bugs invalidate baseline data.** Category B[4] produced a false FAIL (digit "2" vs word "two") and B[5] produced a false PASS (model argued with injected fact but "4" appeared). Both required manual identification. Automatic scorers need edge case testing.
-- **Shorter responses improve TTFS more reliably than faster models.** qwen2.5:3b's LLM latency is +0.10s slower than llama3.2:3b but TTFS improved -0.20s because 4.6 fewer words per response reduces TTS synthesis time. Output length is a more reliable latency lever than model speed on this hardware.
+- **Evaluation before upgrade is not bureaucracy.** phi3.5 would have been a regression — self-commentary spoken aloud by Piper, 2/5 format compliance. Without the harness, that wouldn't have been known until Week 6.
+- **System prompt placement matters.** The closing instruction appearing before the final few-shot examples caused those examples to be read as outside the rule. Order is semantics, not just style.
+- **Tool response formatting belongs in the formatter, not the system prompt.** Tool path queries never reach the LLM. Putting tool framing examples in the system prompt has zero effect.
+- **Shorter output beats faster generation on constrained hardware.** qwen2.5:3b's LLM latency is +0.11s slower but TTFS improved -0.20s because 4.6 fewer words per response reduces TTS synthesis time more than the generation cost increase.
