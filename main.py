@@ -98,7 +98,7 @@ class TARA:
         print()
         print("=" * 55)
         print("  ╔═══════════════════════════════╗")
-        print("  ║   T A R A  v0.5.5  — Week 5   ║")
+        print("  ║   T A R A  v0.5.6  — Week 5   ║")
         print("  ║   Offline Voice AI Assistant  ║")
         print("  ╚═══════════════════════════════╝")
         print("=" * 55)

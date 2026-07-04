@@ -4,6 +4,7 @@ components/stt.py — Speech-to-Text Component
 Uses faster-whisper (optimised version of OpenAI Whisper) on CPU.
 """
 
+import re
 import os
 import time
 import wave
@@ -104,6 +105,12 @@ class SpeechToText:
 
         return temp_path
 
+    # ── STT Post-Recognition Corrections ────────────────────────
+
+    _STT_CORRECTIONS: dict[str, str] = {
+        r"\bkrishna\b": "krishnendu",
+    }
+
     # ── Transcription ────────────────────────────────────────
 
     def transcribe(self, audio_path: str) -> tuple[str, float]:
@@ -128,6 +135,8 @@ class SpeechToText:
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
+        text = self._apply_corrections(text)
+
         return text, latency
 
     # ── Convenience Method ───────────────────────────────────
@@ -141,3 +150,13 @@ class SpeechToText:
         if audio_path is None:
             return None, 0.0
         return self.transcribe(audio_path)
+
+    # ── STT corrections ───────────────────────────────────
+
+    def _apply_corrections(self, text: str) -> str:
+        result = text
+        for pattern, replacement in self._STT_CORRECTIONS.items():
+            if re.search(pattern, result, flags=re.IGNORECASE):
+                result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+                print(f"[STT] Correction applied: '{pattern}' → '{replacement}'")
+        return result

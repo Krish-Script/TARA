@@ -3,11 +3,11 @@
 
 **Sprint duration:** Week 5 of 10  
 **Primary goal:** Evaluation harness before model upgrade. Fix known bugs before adding complexity.  
-**Status:** 🔄 In Progress (T1–T5 complete, T6–T7 pending)
+**Status:** 🔄 In Progress (T1–T6 complete, T7 pending)
 
 ---
 
-## Uncomfortable truth
+## Uncomfortable truth first
 
 The project objective lists "file management" as a key functional requirement under agentic tool execution. At the halfway point of the 10-week sprint, zero file management capability exists. This is not a stretch goal that slipped — it is a stated requirement. Week 6 must open with it.
 
@@ -112,7 +112,6 @@ Root cause: qwen2.5:3b cannot hold "respond in character as X" and "maximum one 
 
 | Task | Description |
 |------|-------------|
-| T6 | STT post-recognition correction layer |
 | T7 | Midpoint documentation — README + research notes |
 
 ---
@@ -143,3 +142,29 @@ File management and information retrieval are Week 6 priorities, not optional fe
 - **System prompt placement matters.** The closing instruction appearing before the final few-shot examples caused those examples to be read as outside the rule. Order is semantics, not just style.
 - **Tool response formatting belongs in the formatter, not the system prompt.** Tool path queries never reach the LLM. Putting tool framing examples in the system prompt has zero effect.
 - **Shorter output beats faster generation on constrained hardware.** qwen2.5:3b's LLM latency is +0.11s slower but TTFS improved -0.20s because 4.6 fewer words per response reduces TTS synthesis time more than the generation cost increase.
+
+---
+
+## T6 — STT Post-Recognition Correction Layer
+
+**File:** `components/stt.py`
+
+Added `_apply_corrections()` method with whole-word regex matching. Called inside `transcribe()` before return.
+
+**Final dictionary — two entries removed, one retained:**
+
+| Pattern | Replacement | Status | Reason |
+|---------|-------------|--------|--------|
+| `r"\bkrishna\b"` | `"krishnendu"` | ✅ Kept | Consistent misrecognition observed Week 5 |
+| `"so much"` | `"how much"` | ❌ Removed | Fires on valid English ("so much pollution") — ambiguity unfixable |
+| `"so many"` | `"how many"` | ❌ Removed | Same reason |
+
+**Two bugs found and fixed during T6:**
+
+Bug 1 — substring replacement: `str.replace("krishna", "krishnendu")` on input "krishnendu" produced "krishnendundu". Fixed with `re.sub` + `\b` word boundary — matches standalone word only.
+
+Bug 2 — "so much pollution" → "how much pollution": Correction fired on grammatically correct English with no way to distinguish from the intended misrecognition case. Removed permanently. This is a fundamental limitation: substring-level corrections cannot distinguish misrecognitions from valid usage without semantic context.
+
+**Rule enforced going forward:** Every entry in `_STT_CORRECTIONS` must be an observed misrecognition, not a predicted one. Each entry overrides Whisper output — wrong corrections produce silent misroutes harder to debug than the original error.
+
+**Known caveat:** `r"\bkrishna\b"` will fire on queries about Krishna the deity. Documented in `docs/known_limitations.md` (T7).

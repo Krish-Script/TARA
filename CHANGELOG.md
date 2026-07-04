@@ -10,8 +10,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 5 (remaining)
-- T6: STT correction layer
-- T7: Midpoint documentation
+- T7: Midpoint documentation — README + known_limitations.md + research notes
 
 ### Planned — Week 6 (required — project objective gaps)
 - File management tool (stated requirement, currently missing)
@@ -19,7 +18,35 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
-## [0.12.0] - 2026-07-01
+## [0.12.1] - 2026-07-04
+
+### Added
+- `components/stt.py` — STT post-recognition correction layer
+  - `_STT_CORRECTIONS` dict mapping regex patterns to replacements
+  - `_apply_corrections()` method using `re.sub` with `\b` word boundaries — prevents substring matches (e.g. "krishna" inside "krishnendu")
+  - Correction fires print to console — never silent
+  - Called inside `transcribe()` before return
+
+### Changed
+- `components/stt.py` — `import re` added at module level
+
+### Removed
+- "so much" → "how much" correction removed: fires on grammatically correct English ("Why is there so much pollution?") — ambiguity is unfixable without context
+- "so many" → "how many" removed for same reason
+
+### Known Limitations
+- `r"\bkrishna\b"` correction fires on queries about Krishna the deity (e.g. "Tell me about Krishna"). Acceptable risk for personal assistant use — documented, not hidden.
+
+### Bug Fixed
+- First implementation used `str.replace()` — caused mid-word substitution ("krishnendu" → "krishnendundu"). Fixed with `re.sub` + `\b` word boundary.
+
+### Technical Notes
+- STT correction dictionary entries must be observed misrecognitions only — each entry overrides Whisper output and can silently corrupt valid queries
+- "so much"/"so many" removal is permanent — the ambiguity is not solvable at this layer without semantic context the corrector does not have
+
+---
+
+## [0.12.0] - 2026-07-03
 
 ### Changed
 - `config.py` — system prompt restructured: closing instruction ("Always respond exactly like these examples") moved after all few-shot examples. Previously placed mid-block, causing final examples to appear outside the rule
@@ -37,7 +64,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
-## [0.11.0] - 2026-07-01
+## [0.11.0] - 2026-07-02
 
 ### Changed
 - `config.py` — LLM model upgraded from `llama3.2:3b` to `qwen2.5:3b`
@@ -79,7 +106,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
-## [0.10.0] - 2026-06-26
+## [0.10.0] - 2026-07-01
 
 ### Changed
 - `components/orchestrator.py` — Stage 2 (Intent Detection) moved before Stage 1 (Memory Retrieval) in `_run_pipeline()`
@@ -377,6 +404,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.10.0 | Stage ordering optimisation — memory skip on tool path | Week 5 | ✅ Released |
 | 0.11.0 | Model upgrade to qwen2.5:3b (evaluation-based) | Week 5 | ✅ Released |
 | 0.12.0 | Prompt restructure + formatter tool framing | Week 5 | ✅ Released |
+| 0.12.1 | STT correction layer + substring bug fix | Week 5 | ✅ Released |
 
 ---
 
