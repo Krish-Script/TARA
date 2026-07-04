@@ -9,12 +9,34 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 5 (remaining)
-- T7: Midpoint documentation — README + known_limitations.md + research notes
-
 ### Planned — Week 6 (required — project objective gaps)
-- File management tool (stated requirement, currently missing)
-- Information retrieval tool (stated requirement, currently missing)
+- File management tool (stated requirement, not implemented)
+- Information retrieval tool (stated requirement, not implemented)
+- Error handling + recovery mechanisms (stated requirement, not implemented)
+
+---
+
+## [0.13.0] - 2026-07-04
+
+### Added
+- `README.md` — project overview, capability table, 7-stage pipeline ASCII diagram, Week 5 performance baseline table, hardware requirements, full setup instructions, voice command reference
+- `docs/known_limitations.md` — eight documented limitations with root cause, current behaviour, and fix status:
+  - Creative/persona response length (accepted, Option B)
+  - STT name correction side effect (krishna → deity queries)
+  - CPU temperature unavailable on Windows
+  - File management not implemented (stated requirement gap)
+  - Information retrieval not implemented (stated requirement gap)
+  - Chat path TTFS ~2.30s perceptible silence
+  - VRAM misroute on ambiguous STT
+  - Error handling: crash suppressor only, not recovery mechanism (stated requirement gap)
+  - Chunked TTS overhead on single-sentence responses
+- `docs/research_notes.md` — midpoint research analysis
+  - Three confirmed findings: tool-path TTFS advantage (45%), response length as primary TTFS lever, systematic LLM hardware hallucination
+  - Three unmeasured hypotheses: VRAM/format-compliance Pareto frontier, memory injection overhead at scale, STT domain vocabulary error rate
+
+### Technical Notes
+- Error handling gap explicitly documented: project objective requires "robust error handling and recovery mechanisms" — current implementation is a generic exception catcher, not a recovery system. Closing this gap is a Week 6–7 priority
+- README capability table explicitly marks file management and information retrieval as not built — stated requirements, not stretch goals
 
 ---
 
@@ -405,6 +427,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.11.0 | Model upgrade to qwen2.5:3b (evaluation-based) | Week 5 | ✅ Released |
 | 0.12.0 | Prompt restructure + formatter tool framing | Week 5 | ✅ Released |
 | 0.12.1 | STT correction layer + substring bug fix | Week 5 | ✅ Released |
+| 0.13.0 | Midpoint documentation — README, limitations, research notes | Week 5 | ✅ Released |
 
 ---
 

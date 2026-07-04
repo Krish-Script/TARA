@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 5 of 10  
 **Primary goal:** Evaluation harness before model upgrade. Fix known bugs before adding complexity.  
-**Status:** 🔄 In Progress (T1–T6 complete, T7 pending)
+**Status:** ✅ Completed
 
 ---
 
@@ -108,14 +108,6 @@ Root cause: qwen2.5:3b cannot hold "respond in character as X" and "maximum one 
 
 ---
 
-## Pending Tasks
-
-| Task | Description |
-|------|-------------|
-| T7 | Midpoint documentation — README + research notes |
-
----
-
 ## Open Gap — Project Objective vs Implementation
 
 | Stated requirement | Status |
@@ -168,3 +160,41 @@ Bug 2 — "so much pollution" → "how much pollution": Correction fired on gram
 **Rule enforced going forward:** Every entry in `_STT_CORRECTIONS` must be an observed misrecognition, not a predicted one. Each entry overrides Whisper output — wrong corrections produce silent misroutes harder to debug than the original error.
 
 **Known caveat:** `r"\bkrishna\b"` will fire on queries about Krishna the deity. Documented in `docs/known_limitations.md` (T7).
+
+---
+
+## T7 — Midpoint Documentation
+
+Three files created and committed:
+
+**`README.md`** — full project overview including capability table, 7-stage pipeline diagram, Week 5 performance baseline, hardware requirements, setup instructions, and known limitations summary.
+
+**`docs/known_limitations.md`** — eight documented limitations with root cause, current behaviour, and fix status for each. Key entries: creative length accepted as documented behaviour; CPU temperature unavailable on Windows; file management and information retrieval not implemented; error handling gap explicitly documented.
+
+**`docs/research_notes.md`** — two sections:
+
+*What has been measured that is worth reporting:*
+- Tool-path vs chat-path TTFS: 45% reduction (1.25s vs 2.30s) by bypassing LLM for deterministic queries — with supporting hallucination log showing LLM fabricates hardware values when queries misroute
+- Response length as the primary TTFS lever: qwen2.5:3b is +0.11s slower than llama3.2:3b but -0.20s faster TTFS because 4.6 fewer words per response reduces TTS synthesis cost more than generation cost increased
+- LLM hardware hallucination is systematic — three incidents, all producing plausible-sounding but wrong values with no uncertainty signal
+
+*What has not been measured that would be worth measuring:*
+- Pareto frontier between VRAM and format compliance across model sizes
+- Memory injection overhead growth at scale (50+ facts, 200+ turns)
+- STT error rate on domain-specific vocabulary
+
+**Gap identified during T7:** The project objective states "robust error handling and recovery mechanisms" as a key functional requirement. The current implementation catches all exceptions in the main loop and speaks "Sorry, something went wrong." This is a crash suppressor, not a recovery mechanism. No per-component error classification, graceful degradation, or retry logic has been built. This is documented in `known_limitations.md` and is a Week 6–7 priority.
+
+---
+
+## Sprint Outcome
+
+✅ T1 — TTS pronunciation, capitalisation fix, 22 intent patterns  
+✅ T2 — Stage 2 before Stage 1, memory skipped on tool path  
+✅ T3 — Model evaluation harness, corrected llama3.2:3b baseline  
+✅ T4 — qwen2.5:3b selected: 5/5 A, 5/5 B, 24.4w avg, 2.30s TTFS  
+✅ T5 — Prompt restructured, tool framing in formatter, creative length documented  
+✅ T6 — STT correction layer with regex word boundaries  
+✅ T7 — README, known_limitations.md, research_notes.md  
+
+**Two stated requirements remain unimplemented:** file management, information retrieval. Both are Week 6 first priorities.

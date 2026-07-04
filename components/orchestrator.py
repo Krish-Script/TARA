@@ -17,7 +17,7 @@ Current pipeline:
         ↓
     Stage 3: Tool Execution
         ↓
-    Stage 4: RAG Retrieval             [FUTURE — Week 5]
+    Stage 4: RAG Retrieval
         ↓
     Stage 5: LLM Generation
         ↓
