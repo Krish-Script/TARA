@@ -9,10 +9,33 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 6 (required — project objective gaps)
-- File management tool (stated requirement, not implemented)
-- Information retrieval tool (stated requirement, not implemented)
-- Error handling + recovery mechanisms (stated requirement, not implemented)
+### Planned — Week 6 (remaining)
+- T2: Notes Tool (persistent voice-to-file operations)[cite: 3]
+- T3: File Reader Tool (local file resolution and summarization)[cite: 3]
+- T4: Calculator Tool (sandboxed mathematical evaluation)[cite: 3]
+- T5: Evaluation Harness Upgrade (Adversarial Category A2)[cite: 3]
+- T6: IntentDetector Extension (new patterns and regression benchmark)[cite: 3]
+- T7: Local Information Retrieval (notes and facts search)[cite: 3]
+
+---
+
+## [0.14.0] - 2026-07-10
+
+### Added
+- `logs/errors.log` — silent file logger for Tier 2 and Tier 3 system faults[cite: 3].
+- `components/error_manager.py` — centralized error management defining `ToolExpectedError` and configuring the non-propagating `tara_errors` logger.
+- Three-tier error architecture to guarantee session survival[cite: 3]:
+  - **Tier 1 (Expected):** Predictable edge cases (e.g., missing files, unavailable sensors) gracefully converted to natural spoken fallbacks[cite: 3].
+  - **Tier 2 (Unexpected):** Unhandled tool crashes caught by `ToolRegistry`, logged silently to disk, and replaced with a graceful spoken degradation phrase[cite: 3].
+  - **Tier 3 (Component):** Main pipeline stages (STT, TTS, SQLite) wrapped individually to prevent total runtime collapse[cite: 3].
+
+### Changed
+- `components/tools/registry.py` — `dispatch()` method refactored to catch and route Tier 1 and Tier 2 errors, utilizing the structured `ToolResult` dataclass to prevent pipeline breakage[cite: 4].
+- `main.py` — STT capture and the main `while True` loop wrapped in Tier 3 component protections[cite: 6].
+- `components/orchestrator.py` — Stage 3 (Tool TTS/SQLite), Stage 6 (Chat TTS), Stage 7 (Chat SQLite), and the `_say()` helper wrapped in Tier 3 protections[cite: 5].
+
+### Fixed
+- Addressed project objective gap: replaced the generic global catch-all exception block with a robust, component-level recovery mechanism[cite: 3]. SQLite failures now properly degrade to a local text file (`logs/memory_fallback.txt`), and TTS crashes gracefully fall back to terminal prints without dropping the session[cite: 3].
 
 ---
 

@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from components.intent import Intent
+from components.error_manager import ToolExpectedError, error_logger
 
 
 @dataclass
@@ -93,13 +94,32 @@ class ToolRegistry:
                 success          = True,
             )
 
-        except Exception as e:
+        except ToolExpectedError as e:
+            # TIER 1: Expected Tool Error
+            # The tool caught a known edge case. We speak the error message naturally.
             latency = time.time() - start
             return ToolResult(
                 tool_name        = intent.name.lower(),
                 raw_output       = {},
-                formatted_output = "Sorry, I couldn't retrieve that information right now.",
+                formatted_output = str(e),
                 latency          = latency,
                 success          = False,
-                error            = str(e),
+                error            = str(e)
+            )
+
+        except Exception as e:
+            # TIER 2: Unexpected Tool Error
+            # Total crash. Log it silently and speak the graceful degradation phrase.
+            latency = time.time() - start
+            error_logger.error(
+                f"Unexpected failure in tool '{intent.name.lower()}': {str(e)}", 
+                exc_info=True
+            )
+            return ToolResult(
+                tool_name        = intent.name.lower(),
+                raw_output       = {},
+                formatted_output = "Something went wrong with that, but I'm still here.",
+                latency          = latency,
+                success          = False,
+                error            = str(e)
             )

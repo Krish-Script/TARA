@@ -41,3 +41,6 @@ voices/
 # SQLite database
 *.db
 *.sqlite3
+
+# Logs files
+logs/

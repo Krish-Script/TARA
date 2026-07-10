@@ -16,6 +16,7 @@ Responsibilities:
 
 import time
 
+from components.error_manager import error_logger
 from components.stt         import SpeechToText
 from components.llm         import LanguageModel
 from components.tts         import TextToSpeech
@@ -66,19 +67,30 @@ class TARA:
         # Greeting
         greeting = "Hello! I'm TARA, your offline AI assistant. How can I help?"
         print(f"\n[TARA] {greeting}")
-        self.tts.speak(greeting)
+        try:
+            self.tts.speak(greeting)
+        except Exception as e:
+            error_logger.error(f"Tier 3 Component Crash (TTS Startup): {str(e)}", exc_info=True)
+            print("[TTS FAULT - AUDIO FAILED]\n")
 
         while True:
             try:
                 print("\n[Waiting for speech...]")
-                text, stt_latency = self.stt.listen_and_transcribe()
-
+                
+                # --- TIER 3: STT PROTECTION ---
+                try:
+                    text, stt_latency = self.stt.listen_and_transcribe()
+                except Exception as e:
+                    error_logger.error(f"Tier 3 Component Crash (STT): {str(e)}", exc_info=True)
+                    print("\n[STT FAULT] I couldn't process the audio. Please try speaking again.")
+                    continue 
+                
                 if not text:
                     continue
 
                 print(f"\n[You]  {text}")
                 print(f"       STT latency: {stt_latency:.2f}s")
-
+                
                 should_continue = self.orchestrator.process_turn(text, stt_latency)
                 if not should_continue:
                     break
@@ -88,8 +100,9 @@ class TARA:
                 break
 
             except Exception as e:
-                print(f"\n[ERROR] {e}")
-                self.tts.speak("Sorry, something went wrong. Please try again.")
+                # --- TIER 3: GLOBAL LOOP PROTECTION ---
+                error_logger.error(f"Tier 3 Component Crash (Main Loop): {str(e)}", exc_info=True)
+                print(f"\n[SYSTEM FAULT] Recovering from unexpected error...")
 
         self.orchestrator.print_report()
 
@@ -98,7 +111,7 @@ class TARA:
         print()
         print("=" * 55)
         print("  ╔═══════════════════════════════╗")
-        print("  ║   T A R A  v0.5.7  — Week 5   ║")
+        print("  ║   T A R A  v0.6.1  — Week 6   ║")
         print("  ║   Offline Voice AI Assistant  ║")
         print("  ╚═══════════════════════════════╝")
         print("=" * 55)

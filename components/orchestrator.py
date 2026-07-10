@@ -41,6 +41,7 @@ NOT responsible for:
 
 import time
 
+from components.error_manager import error_logger
 from components.memory import MemoryStore
 from components.intent import Intent, IntentDetector
 from components.tools.registry import ToolRegistry
@@ -214,20 +215,36 @@ class Orchestrator:
             tool_result = self.tool_registry.dispatch(intent, text)
             if tool_result:
                 print(f"\n[TARA] {tool_result.formatted_output}")
-                print(f"       Tool: {tool_result.tool_name} | "
-                    f"latency: {tool_result.latency:.3f}s")
-                tts_result = self.tts.speak(tool_result.formatted_output)
-                self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
-                self.stats["tts"].append(tts_result.total_latency)
-                ttfs = stt_latency + tts_result.synthesis_latency
-                self.stats["ttfs_tool"].append(ttfs)
-                self.stats["tool_latency"].append(tool_result.latency)
-                print(f"       ── TTFS: {ttfs:.2f}s ──")
-                self.memory.save_turn(
-                    session_id=self.session_id,
-                    user_message=text,
-                    assistant_response=tool_result.formatted_output,
-                )
+                print(f"       Tool: {tool_result.tool_name} | latency: {tool_result.latency:.3f}s")
+                
+                # Protect Tool TTS
+                try:
+                    tts_result = self.tts.speak(tool_result.formatted_output)
+                    self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
+                    self.stats["tts"].append(tts_result.total_latency)
+                    ttfs = stt_latency + tts_result.synthesis_latency
+                    self.stats["ttfs_tool"].append(ttfs)
+                    self.stats["tool_latency"].append(tool_result.latency)
+                    print(f"       ── TTFS: {ttfs:.2f}s ──")
+                except Exception as e:
+                    error_logger.error(f"Tier 3 Component Crash (Tool TTS): {str(e)}", exc_info=True)
+                    print(f"\n[TTS FAULT - AUDIO FAILED]\n")
+                    self.stats["ttfs_tool"].append(stt_latency + tool_result.latency)
+                    self.stats["tool_latency"].append(tool_result.latency)
+
+                # Protect Tool SQLite Persistence
+                try:
+                    self.memory.save_turn(
+                        session_id=self.session_id,
+                        user_message=text,
+                        assistant_response=tool_result.formatted_output,
+                    )
+                except Exception as e:
+                    error_logger.error(f"Tier 3 Component Crash (Tool SQLite): {str(e)}", exc_info=True)
+                    with open("logs/memory_fallback.txt", "a", encoding="utf-8") as f:
+                        f.write(f"User: {text}\nTARA: {tool_result.formatted_output}\n---\n")
+                    print("[SYSTEM] Database write failed. Turn saved to local fallback file.")
+                    
                 return True
 
         # ── Stage 5: LLM Generation (CHAT path only) ─────────────
@@ -240,24 +257,36 @@ class Orchestrator:
         self.stats["llm"].append(llm_latency)
 
         # ── Stage 6: Response Delivery ────────────────────────────
-        tts_result = self.tts.speak(response)
-        print(f"       TTS chunks:    {tts_result.chunks}")
-        print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s  ← first chunk (TTFS)")
-        print(f"       TTS playback:  {tts_result.playback_latency:.2f}s")
-        print(f"       TTS total:     {tts_result.total_latency:.2f}s")
-        self.stats["tts"].append(tts_result.total_latency)
-        self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
+        try:
+            tts_result = self.tts.speak(response)
+            print(f"       TTS chunks:    {tts_result.chunks}")
+            print(f"       TTS synthesis: {tts_result.synthesis_latency:.2f}s  ← first chunk (TTFS)")
+            print(f"       TTS playback:  {tts_result.playback_latency:.2f}s")
+            print(f"       TTS total:     {tts_result.total_latency:.2f}s")
+            self.stats["tts"].append(tts_result.total_latency)
+            self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
 
-        ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
-        self.stats["ttfs"].append(ttfs)
-        print(f"       ── TTFS: {ttfs:.2f}s ──")
+            ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
+            self.stats["ttfs"].append(ttfs)
+            print(f"       ── TTFS: {ttfs:.2f}s ──")
+        except Exception as e:
+            error_logger.error(f"Tier 3 Component Crash (TTS/Piper): {str(e)}", exc_info=True)
+            print(f"\n[TTS FAULT - AUDIO FAILED] TARA: {response}\n")
+            ttfs = stt_latency + llm_latency
+            self.stats["ttfs"].append(ttfs)
 
-        # ── Stage 7: Persistence ──────────────────────────────────
-        self.memory.save_turn(
-            session_id=self.session_id,
-            user_message=text,
-            assistant_response=response,
-        )
+       # ── Stage 7: Persistence ──────────────────────────────────
+        try:
+            self.memory.save_turn(
+                session_id=self.session_id,
+                user_message=text,
+                assistant_response=response,
+            )
+        except Exception as e:
+            error_logger.error(f"Tier 3 Component Crash (SQLite): {str(e)}", exc_info=True)
+            with open("logs/memory_fallback.txt", "a", encoding="utf-8") as f:
+                f.write(f"User: {text}\nTARA: {response}\n---\n")
+            print("[SYSTEM] Database write failed. Turn saved to local fallback file.")
 
         return True
 
@@ -266,11 +295,14 @@ class Orchestrator:
     def _say(self, text: str) -> float:
         """
         Print and speak together.
-        All command handlers use this. The main pipeline (Stage 6)
-        calls tts.speak() directly to capture the latency return value.
         """
         print(f"\n[TARA] {text}")
-        return self.tts.speak(text)
+        try:
+            return self.tts.speak(text)
+        except Exception as e:
+            error_logger.error(f"Tier 3 Component Crash (TTS/Piper helper): {str(e)}", exc_info=True)
+            print(f"\n[TTS FAULT - AUDIO FAILED]\n")
+            return 0.0
 
     def _print_baseline_report(self):
         def avg(lst): return sum(lst) / len(lst) if lst else 0.0
@@ -283,7 +315,7 @@ class Orchestrator:
         total_turns  = chat_turns + tool_turns
 
         print("\n" + "=" * 55)
-        print("  WEEK 5 BASELINE PERFORMANCE REPORT")
+        print("  WEEK 6 BASELINE PERFORMANCE REPORT")
         print("=" * 55)
         print(f"  Session duration : {session_mins:.1f} min")
         print(f"  Total turns      : {total_turns}  "

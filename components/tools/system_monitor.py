@@ -34,6 +34,7 @@ Design decisions:
 import time
 
 import psutil
+from components.error_manager import ToolExpectedError
 
 
 class SystemMonitor:
@@ -136,7 +137,7 @@ class SystemMonitor:
         try:
             batt = psutil.sensors_battery()
             if batt is None:
-                return {"battery_available": False}
+                raise ToolExpectedError("I couldn't detect a battery on this system.")
             return {
                 "battery_percent":  round(batt.percent, 1),
                 "charging":         batt.power_plugged,
