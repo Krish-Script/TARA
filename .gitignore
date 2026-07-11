@@ -44,3 +44,6 @@ voices/
 
 # Logs files
 logs/
+
+# Data files/ Notes
+data/notes/

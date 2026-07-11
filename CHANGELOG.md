@@ -10,12 +10,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 6 (remaining)
-- T2: Notes Tool (persistent voice-to-file operations)[cite: 3]
-- T3: File Reader Tool (local file resolution and summarization)[cite: 3]
-- T4: Calculator Tool (sandboxed mathematical evaluation)[cite: 3]
-- T5: Evaluation Harness Upgrade (Adversarial Category A2)[cite: 3]
-- T6: IntentDetector Extension (new patterns and regression benchmark)[cite: 3]
-- T7: Local Information Retrieval (notes and facts search)[cite: 3]
+- T3: File Reader Tool (local file resolution and summarization)
+- T4: Calculator Tool (sandboxed mathematical evaluation)
+- T5: Evaluation Harness Upgrade (Adversarial Category A2)
+- T6: IntentDetector Extension (regression benchmark)
+- T7: Local Information Retrieval (notes and facts search)
+
+---
+
+## [0.15.0] - 2026-07-11
+
+### Added
+- `components/tools/notes_tool.py` — New persistent file management capability supporting voice-driven note creation, reading, listing, and string-based search.
+- `data/notes/` — Local directory establishment for persistent text file storage.
+- Four new intent classifications (`NOTES_CREATE`, `NOTES_READ`, `NOTES_LIST`, `NOTES_SEARCH`) added to `IntentDetector`.
+
+### Changed
+- `components/tools/formatter.py` — Expanded with four new templates to gracefully read note metadata and content via TTS.
+- `ToolRegistry` — Architecture updated to accept the `LanguageModel` instance, enabling "LLM-Assisted Tool Paths" (tools that require zero-shot NLP to format data before executing system tasks).
+- `components/intent.py` — Resolved critical pattern collision risk by strictly ordering "remember to" (Notes) above "remember" (Memory) in the routing logic.
 
 ---
 
@@ -451,6 +464,8 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.12.0 | Prompt restructure + formatter tool framing | Week 5 | ✅ Released |
 | 0.12.1 | STT correction layer + substring bug fix | Week 5 | ✅ Released |
 | 0.13.0 | Midpoint documentation — README, limitations, research notes | Week 5 | ✅ Released |
+| 0.14.0 | 3-Tier Error Architecture | Week 6 | ✅ Released |
+| 0.15.0 | Notes Tool & File Management | Week 6 | ✅ Released |
 
 ---
 

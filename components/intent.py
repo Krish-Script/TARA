@@ -28,6 +28,12 @@ class Intent(Enum):
     CALCULATION  = auto()   # math queries (Week 4+)
     MEMORY       = auto()   # memory commands — handled by command registry
 
+    # --- Notes Intents ---
+    NOTES_CREATE = auto()
+    NOTES_READ   = auto()
+    NOTES_LIST   = auto()
+    NOTES_SEARCH = auto()
+
 
 class IntentDetector:
 
@@ -116,6 +122,19 @@ class IntentDetector:
                     "computer status",
                 ],
                 Intent.SYSTEM_QUERY,
+            ),
+
+            (
+                [
+                    "take a note",
+                    "take the note",  # <-- Added STT variation
+                    "take note",      # <-- Added STT variation
+                    "note that",
+                    "remember to",  
+                    "write down",
+                    "add a note",
+                ],
+                Intent.NOTES_CREATE,
             ),
 
             # ── Calculation (stub — Week 4+) ──────────────────

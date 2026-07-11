@@ -76,7 +76,7 @@ class Orchestrator:
         self.session_id    = session_id
         self.memory_config = memory_config
         self.intent_detector = IntentDetector()
-        self.tool_registry   = ToolRegistry()
+        self.tool_registry   = ToolRegistry(llm=self.llm)
 
         self.stats = {
             "stt":           [],

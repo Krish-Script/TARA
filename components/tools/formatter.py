@@ -38,76 +38,58 @@ class ToolFormatter:
         formatters = {
             Intent.TIME_QUERY:   ToolFormatter._format_time,
             Intent.SYSTEM_QUERY: ToolFormatter._format_system,
+            
+            # --- T1: Notes Tool Formatters ---
+            Intent.NOTES_CREATE: ToolFormatter._format_notes_create,
+            Intent.NOTES_READ:   ToolFormatter._format_notes_read,
+            Intent.NOTES_LIST:   ToolFormatter._format_notes_list,
+            Intent.NOTES_SEARCH: ToolFormatter._format_notes_search,
         }
 
         formatter = formatters.get(intent, ToolFormatter._format_generic)
         return formatter(raw_output)
 
-    # ── Time formatter ───────────────────────────────────────
+    # ── Tool-specific formatters ─────────────────────────────
 
     @staticmethod
     def _format_time(data: dict) -> str:
-        """
-        Produces natural responses based on what was asked.
-        Currently returns both time and date — refine per query in Week 5.
-        """
-        time_str = data.get("time_12h",   "unknown time")
-        date_str = data.get("date_full",  "unknown date")
-        return f"It's {time_str} on {date_str}."
-
-    # ── System formatter ─────────────────────────────────────
+        """Example: 'It's 02:45 PM on Monday, October 23, 2023.'"""
+        time_str = data.get("time_12h", "unknown time")
+        day_str  = data.get("day_name", "unknown day")
+        date_str = data.get("date_full", "unknown date")
+        
+        return f"It's {time_str} on {day_str}, {date_str}."
 
     @staticmethod
     def _format_system(data: dict) -> str:
-        """
-        Formats system monitor output into spoken sentences.
-        Only speaks fields present in the dict — allows partial
-        queries (CPU-only, RAM-only, temperature-only, etc.)
-        """
         parts = []
 
         # CPU
         if "cpu_percent" in data:
-            parts.append(f"Your CPU is at {data['cpu_percent']:.0f} percent")
+            parts.append(f"CPU usage is at {data['cpu_percent']:.0f} percent")
 
-        # RAM
+        # Memory (RAM)
         if "ram_used_gb" in data and "ram_total_gb" in data:
             parts.append(
-                f"Your RAM is {data['ram_used_gb']:.1f} of "
-                f"{data['ram_total_gb']:.0f} gigabytes used"
+                f"RAM is {data['ram_used_gb']:.1f} of "
+                f"{data['ram_total_gb']:.1f} gigabytes used"
             )
 
-        # Disk
-        if "disk_free_gb" in data:
+        # GPU / VRAM
+        if "vram_used_gb" in data and "vram_total_gb" in data:
             parts.append(
-                f"Your disk has {data['disk_free_gb']:.0f} gigabytes free"
-            )
-
-        # Battery
-        if data.get("battery_available") is False:
-            parts.append("battery sensor is not available on this device")
-        elif "battery_percent" in data:
-            status = "charging" if data.get("charging") else "not charging"
-            parts.append(
-                f"Your battery is at {data['battery_percent']:.0f} percent "
-                f"and {status}"
-            )
-
-        # VRAM
-        if data.get("vram_available") is False:
-            parts.append("GPU metrics are unavailable")
-        elif "vram_used_gb" in data and "vram_total_gb" in data:
-            parts.append(
-                f"Your VRAM is {data['vram_used_gb']:.2f} of "
+                f"VRAM is {data['vram_used_gb']:.1f} of "
                 f"{data['vram_total_gb']:.1f} gigabytes used"
             )
 
+        # Battery
+        if "battery_percent" in data:
+            bp = data["battery_percent"]
+            plugged = "and charging" if data.get("battery_plugged") else "and discharging"
+            parts.append(f"battery is at {bp:.0f} percent {plugged}")
+
         # Temperature
-        if data.get("gpu_temp_available"):
-            parts.append(
-                f"Your GPU temperature is {data['gpu_temp_c']} degrees Celsius"
-            )
-        if data.get("cpu_temp_available"):
+        if "cpu_temp_c" in data:
             parts.append(
                 f"Your CPU temperature is {data['cpu_temp_c']} degrees Celsius"
             )
@@ -134,6 +116,30 @@ class ToolFormatter:
         # Three or more: "X, Y, and Z."
         return f"{', '.join(ToolFormatter._cap_first(p) if i == 0 else p for i, p in enumerate(parts[:-1]))}, and {parts[-1]}."
 
+    # ── T1 Notes Formatters ──────────────────────────────────
+
+    @staticmethod
+    def _format_notes_create(data: dict) -> str:
+        return f"Note saved: {data.get('content')}"
+
+    @staticmethod
+    def _format_notes_read(data: dict) -> str:
+        return f"Your last note says: {data.get('content')}"
+
+    @staticmethod
+    def _format_notes_list(data: dict) -> str:
+        count = data.get('count', 0)
+        date = data.get('latest_date', 'recently')
+        if count == 1:
+            return f"You have 1 note, from {date}."
+        return f"You have {count} notes. The most recent one is from {date}."
+
+    @staticmethod
+    def _format_notes_search(data: dict) -> str:
+        term = data.get('term')
+        match = data.get('match')
+        return f"I found a note about {term}. It says: {match}"
+
     # ── Generic fallback ─────────────────────────────────────
 
     @staticmethod
@@ -141,9 +147,19 @@ class ToolFormatter:
         """Last-resort fallback — should rarely be reached."""
         if not data:
             return "I completed the action but have no result to report."
-        return "I retrieved the information, but I'm not sure how to summarise it."
-    
+        return "I retrieved the information, but I'm not sure how to read it out loud."
+
+    # ── Helpers ──────────────────────────────────────────────
+
     @staticmethod
-    def _cap_first(s: str) -> str:
-        """Uppercase first character only — preserves acronyms like GPU, RAM, VRAM."""
-        return s[0].upper() + s[1:] if s else s
+    def _cap_first(text: str) -> str:
+        """Capitalize first letter safely."""
+        if not text:
+            return text
+        
+        # Week 5 fix: Ensure VRAM, CPU, RAM stay uppercase if they are the first word
+        first_word = text.split()[0]
+        if first_word.isupper():
+            return text
+            
+        return text[0].upper() + text[1:]

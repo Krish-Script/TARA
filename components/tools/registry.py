@@ -47,7 +47,8 @@ class ToolResult:
 
 class ToolRegistry:
 
-    def __init__(self):
+    def __init__(self, llm=None):
+        self.llm = llm
         self._registry: dict[Intent, Callable] = {}
         self._build_registry()
 
@@ -64,6 +65,14 @@ class ToolRegistry:
         from components.tools.system_monitor import SystemMonitor
         system_monitor = SystemMonitor()
         self._registry[Intent.SYSTEM_QUERY] = system_monitor.run
+
+        from components.tools.notes_tool import NotesTool
+        notes_tool = NotesTool(self.llm)
+        
+        self._registry[Intent.NOTES_CREATE] = notes_tool.create_note
+        self._registry[Intent.NOTES_READ]   = notes_tool.read_last_note
+        self._registry[Intent.NOTES_LIST]   = notes_tool.list_notes
+        self._registry[Intent.NOTES_SEARCH] = notes_tool.search_notes
 
     def dispatch(self, intent: Intent, query: str) -> ToolResult | None:
         """
