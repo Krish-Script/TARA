@@ -167,3 +167,6 @@ Category C details:
   [3] 19 words — What is the history of the Python programming language?
   [4] 19 words — How does the human brain work?
   [5] 25 words — Tell me about climate change.
+
+  qwen2.5:3b warm inference (confirmed): 0.78s
+(Previous 9.47s measurement was cold-start contaminated — model loading from disk)

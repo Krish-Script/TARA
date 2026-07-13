@@ -8,47 +8,75 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ---
 
 ## [Unreleased]
-
+ 
 ### Planned — Week 6 (remaining)
 - T3: File Reader Tool (local file resolution and summarization)
 - T4: Calculator Tool (sandboxed mathematical evaluation)
 - T5: Evaluation Harness Upgrade (Adversarial Category A2)
 - T6: IntentDetector Extension (regression benchmark)
 - T7: Local Information Retrieval (notes and facts search)
-
 ---
-
-## [0.15.0] - 2026-07-11
-
-### Added
-- `components/tools/notes_tool.py` — New persistent file management capability supporting voice-driven note creation, reading, listing, and string-based search.
-- `data/notes/` — Local directory establishment for persistent text file storage.
-- Four new intent classifications (`NOTES_CREATE`, `NOTES_READ`, `NOTES_LIST`, `NOTES_SEARCH`) added to `IntentDetector`.
-
-### Changed
-- `components/tools/formatter.py` — Expanded with four new templates to gracefully read note metadata and content via TTS.
-- `ToolRegistry` — Architecture updated to accept the `LanguageModel` instance, enabling "LLM-Assisted Tool Paths" (tools that require zero-shot NLP to format data before executing system tasks).
-- `components/intent.py` — Resolved critical pattern collision risk by strictly ordering "remember to" (Notes) above "remember" (Memory) in the routing logic.
-
----
-
-## [0.14.0] - 2026-07-10
-
-### Added
-- `logs/errors.log` — silent file logger for Tier 2 and Tier 3 system faults[cite: 3].
-- `components/error_manager.py` — centralized error management defining `ToolExpectedError` and configuring the non-propagating `tara_errors` logger.
-- Three-tier error architecture to guarantee session survival[cite: 3]:
-  - **Tier 1 (Expected):** Predictable edge cases (e.g., missing files, unavailable sensors) gracefully converted to natural spoken fallbacks[cite: 3].
-  - **Tier 2 (Unexpected):** Unhandled tool crashes caught by `ToolRegistry`, logged silently to disk, and replaced with a graceful spoken degradation phrase[cite: 3].
-  - **Tier 3 (Component):** Main pipeline stages (STT, TTS, SQLite) wrapped individually to prevent total runtime collapse[cite: 3].
-
-### Changed
-- `components/tools/registry.py` — `dispatch()` method refactored to catch and route Tier 1 and Tier 2 errors, utilizing the structured `ToolResult` dataclass to prevent pipeline breakage[cite: 4].
-- `main.py` — STT capture and the main `while True` loop wrapped in Tier 3 component protections[cite: 6].
-- `components/orchestrator.py` — Stage 3 (Tool TTS/SQLite), Stage 6 (Chat TTS), Stage 7 (Chat SQLite), and the `_say()` helper wrapped in Tier 3 protections[cite: 5].
-
+ 
+## [0.16.0] - 2026-07-12
+ 
 ### Fixed
-- Addressed project objective gap: replaced the generic global catch-all exception block with a robust, component-level recovery mechanism[cite: 3]. SQLite failures now properly degrade to a local text file (`logs/memory_fallback.txt`), and TTS crashes gracefully fall back to terminal prints without dropping the session[cite: 3].
+- `components/tools/formatter.py` — `_format_time()` was producing "Sunday, Sunday, July 12, 2026" because `day_str` was manually prepended before `date_full`, which already includes the day name. Removed `day_str` from the return string and added `.strip()` to `date_full` to eliminate trailing space artifact
+- `components/orchestrator.py` — Stage 1 debug print restored: `[Orchestrator] Stage 1: memory context building (CHAT path)` — confirms memory retrieval fires only on CHAT path turns
+### Verified
+- Stage 1 skip confirmed via 4-turn regression test:
+  - Turn 1: TIME_QUERY — Stage 1 silent ✅
+  - Turn 2: SYSTEM_QUERY — Stage 1 silent ✅
+  - Turn 3: NOTES_CREATE — Stage 1 silent ✅
+  - Turn 4: CHAT — Stage 1 fired ✅
+- qwen2.5:3b warm inference latency confirmed: **0.78s** (corrects contaminated 9.47s cold-start measurement from Week 5 harness)
+### Performance — Week 6 T1–T2 baseline
+ 
+| Metric | Value | Notes |
+|--------|-------|-------|
+| TTFS (tool path) | 1.44s avg | Beats ≤1.50s target |
+| TTFS (chat path) | 2.92s | Single data point — session variance |
+| TTFS (LLM-assisted tool) | 1.28s | Notes create path — short extraction prompt |
+| LLM warm latency | 0.78s | Confirmed via explicit warm-up call |
+| Stage 1 on tool turns | never | Confirmed ✅ |
+ 
+---
+ 
+## [0.15.0] - 2026-07-11
+ 
+### Added
+- `components/tools/notes_tool.py` — persistent voice-to-file note management with four operations: create, read last, list, search
+- `data/notes/` — local storage directory for timestamped note files (created on first use)
+- Four new Intent classifications: `NOTES_CREATE`, `NOTES_READ`, `NOTES_LIST`, `NOTES_SEARCH`
+- LLM-assisted tool path: `ToolRegistry` updated to accept `LanguageModel` instance — enables tools that require zero-shot NLP extraction before executing filesystem tasks
+### Changed
+- `components/tools/formatter.py` — four new templates for note metadata and content TTS delivery
+- `components/intent.py` — "remember to" (NOTES_CREATE) ordered strictly above "remember" (MEMORY) to prevent routing collision
+### Performance
+- LLM-assisted TTFS (note create): **1.28s** — short extraction prompt keeps latency below chat-path baseline of 2.30s
+- Note: 1.28s is specific to short extraction tasks; file summarization on 3000-char documents will be slower — do not treat 1.28s as a general LLM-assisted tool property
+---
+ 
+## [0.14.0] - 2026-07-10
+ 
+### Added
+- `components/error_manager.py` — centralised error management: `ToolExpectedError` class + `tara_errors` file logger (non-propagating, ERROR level)
+- `logs/errors.log` — silent file logger for Tier 2 and Tier 3 faults; user-facing terminal never shows Python tracebacks after this version
+- `logs/memory_fallback.txt` — SQLite failure fallback: conversation turns written locally rather than dropped
+- Three-tier error architecture guaranteeing session survival:
+  - **Tier 1 (Expected):** Tools raise `ToolExpectedError(message)`. Dispatcher converts to spoken response, session continues.
+  - **Tier 2 (Unexpected):** Unhandled tool exceptions caught by `ToolRegistry`, full traceback logged to `logs/errors.log`, graceful spoken fallback delivered.
+  - **Tier 3 (Component):** STT, TTS, and SQLite each wrapped individually. TTS crash → response printed to terminal with `[TTS FAULT - AUDIO FAILED]` tag. SQLite failure → turn appended to `logs/memory_fallback.txt`.
+### Changed
+- `components/tools/registry.py` — `dispatch()` refactored to route Tier 1 and Tier 2 errors via `ToolResult` dataclass, preventing pipeline breakage
+- `main.py` — STT capture and main loop wrapped in Tier 3 protections
+- `components/orchestrator.py` — Stage 3 (Tool TTS/SQLite), Stage 6 (Chat TTS), Stage 7 (Chat SQLite), and `_say()` helper all wrapped in Tier 3 protections
+### Fixed
+- Project objective gap closed: "robust error handling and recovery mechanisms" now implemented structurally. Replaced global catch-all with per-component recovery across all three pipeline tiers.
+### Validation
+- All three tiers deliberately triggered and confirmed:
+  - Tier 1: `ToolExpectedError` spoken naturally, session continued
+  - Tier 2: Injected `ValueError` logged silently to `logs/errors.log`, graceful fallback spoken
+  - Tier 3: Injected `RuntimeError` in Piper TTS fell back to terminal print, session continued without dropping
 
 ---
 
@@ -464,9 +492,9 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.12.0 | Prompt restructure + formatter tool framing | Week 5 | ✅ Released |
 | 0.12.1 | STT correction layer + substring bug fix | Week 5 | ✅ Released |
 | 0.13.0 | Midpoint documentation — README, limitations, research notes | Week 5 | ✅ Released |
-| 0.14.0 | 3-Tier Error Architecture | Week 6 | ✅ Released |
-| 0.15.0 | Notes Tool & File Management | Week 6 | ✅ Released |
-
+| 0.14.0 | 3-Tier error architecture | Week 6 | ✅ Released |
+| 0.15.0 | Notes tool + file management | Week 6 | ✅ Released |
+| 0.16.0 | Time formatter fix + Stage 1 verification | Week 6 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

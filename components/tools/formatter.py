@@ -53,12 +53,10 @@ class ToolFormatter:
 
     @staticmethod
     def _format_time(data: dict) -> str:
-        """Example: 'It's 02:45 PM on Monday, October 23, 2023.'"""
         time_str = data.get("time_12h", "unknown time")
-        day_str  = data.get("day_name", "unknown day")
         date_str = data.get("date_full", "unknown date")
         
-        return f"It's {time_str} on {day_str}, {date_str}."
+        return f"It's {time_str} on {date_str}."
 
     @staticmethod
     def _format_system(data: dict) -> str:

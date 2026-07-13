@@ -204,6 +204,7 @@ class Orchestrator:
         # ── Stage 1: Memory Context (CHAT path only) ─────────────
         memory_context = ""
         if intent == Intent.CHAT:
+            print("[Orchestrator] Stage 1: memory context building (CHAT path)")
             memory_context = self.memory.build_context(
                 session_id=None,
                 recent_turns=self.memory_config["context_turns"],
