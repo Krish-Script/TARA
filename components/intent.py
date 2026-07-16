@@ -34,10 +34,13 @@ class Intent(Enum):
     NOTES_LIST   = auto()
     NOTES_SEARCH = auto()
 
+    FILE_READ    = auto()
+
 
 class IntentDetector:
 
     def __init__(self):
+        print("DEBUG: The new Intent Detector just loaded!")
         self._patterns = self._build_patterns()
 
     def _build_patterns(self) -> list[tuple[list[str], Intent]]:
@@ -49,6 +52,62 @@ class IntentDetector:
         More specific phrases first to prevent shadowing.
         """
         return [
+            (
+                [
+                    "take a note",
+                    "take the note",
+                    "take note",
+                    "note that",
+                    "remember to",  
+                    "write down",
+                    "add a note",
+                ],
+                Intent.NOTES_CREATE,
+            ),
+            (
+                [
+                    "read my last note",
+                    "what was my last note",
+                    "read my notes",
+                ],
+                Intent.NOTES_READ,
+            ),
+            (
+                [
+                    "find my note about",
+                    "do i have a note about",
+                    "search my notes",
+                ],
+                Intent.NOTES_SEARCH,
+            ),
+            (
+                [
+                    "list my notes",
+                    "what notes do i have",
+                    "how many notes",
+                ],
+                Intent.NOTES_LIST,
+            ),
+            (
+                [
+                    "read the file",
+                    "read my file",
+                    "read the document",
+                    "summarize the file",
+                    "summarize my document",
+                    "what does the file",
+                    "read the text file",
+                ],
+                Intent.FILE_READ,
+            ),
+            (
+                [
+                    "remember that",
+                    "remember ",
+                ],
+                Intent.MEMORY,
+            ),
+
             # ── Time & Date ───────────────────────────────────
             (
                 [
@@ -122,19 +181,6 @@ class IntentDetector:
                     "computer status",
                 ],
                 Intent.SYSTEM_QUERY,
-            ),
-
-            (
-                [
-                    "take a note",
-                    "take the note",  # <-- Added STT variation
-                    "take note",      # <-- Added STT variation
-                    "note that",
-                    "remember to",  
-                    "write down",
-                    "add a note",
-                ],
-                Intent.NOTES_CREATE,
             ),
 
             # ── Calculation (stub — Week 4+) ──────────────────

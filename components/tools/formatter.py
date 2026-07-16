@@ -44,6 +44,7 @@ class ToolFormatter:
             Intent.NOTES_READ:   ToolFormatter._format_notes_read,
             Intent.NOTES_LIST:   ToolFormatter._format_notes_list,
             Intent.NOTES_SEARCH: ToolFormatter._format_notes_search,
+            Intent.FILE_READ: ToolFormatter._format_file_read,
         }
 
         formatter = formatters.get(intent, ToolFormatter._format_generic)
@@ -137,6 +138,17 @@ class ToolFormatter:
         term = data.get('term')
         match = data.get('match')
         return f"I found a note about {term}. It says: {match}"
+    
+    @staticmethod
+    def _format_file_read(data: dict) -> str:
+        action = data.get('action')
+        filename = data.get('filename')
+        content = data.get('content')
+
+        if action == "summarize":
+            return f"The file {filename} is quite long, so here is a summary: {content}"
+
+        return f"Here is what {filename} says: {content}"
 
     # ── Generic fallback ─────────────────────────────────────
 

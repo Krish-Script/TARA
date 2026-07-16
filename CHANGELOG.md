@@ -10,11 +10,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
  
 ### Planned — Week 6 (remaining)
-- T3: File Reader Tool (local file resolution and summarization)
 - T4: Calculator Tool (sandboxed mathematical evaluation)
 - T5: Evaluation Harness Upgrade (Adversarial Category A2)
 - T6: IntentDetector Extension (regression benchmark)
 - T7: Local Information Retrieval (notes and facts search)
+---
+
+## [0.17.0] - 2026-07-16
+
+### Added
+- `components/tools/file_reader.py` — New local file reading tool capable of cross-drive search, secure directory whitelisting, and automatic LLM-driven summarization for large text documents.
+- `FILE_READ` intent classification added to `IntentDetector`.
+
+### Changed
+- `components/tools/formatter.py` — Expanded with a new `_format_file_read` template that intelligently branches its spoken response based on whether the document was read verbatim or summarized.
+- `components/intent.py` — Refactored pattern ordering to safely isolate broad file-reading triggers from specific note-reading triggers.
+- Path resolution logic dynamically handles Windows OS "OneDrive" folder hijacking without requiring hardcoded configuration files.
+
 ---
  
 ## [0.16.0] - 2026-07-12
@@ -495,6 +507,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.14.0 | 3-Tier error architecture | Week 6 | ✅ Released |
 | 0.15.0 | Notes tool + file management | Week 6 | ✅ Released |
 | 0.16.0 | Time formatter fix + Stage 1 verification | Week 6 | ✅ Released |
+| 0.17.0 | File Reader & Auto-Summarization | Week 6 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

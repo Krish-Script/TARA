@@ -16,6 +16,7 @@ Pipeline position: Stage 3 (Tool Execution) in orchestrator.py
 from __future__ import annotations
 
 import time
+import traceback
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -73,6 +74,10 @@ class ToolRegistry:
         self._registry[Intent.NOTES_READ]   = notes_tool.read_last_note
         self._registry[Intent.NOTES_LIST]   = notes_tool.list_notes
         self._registry[Intent.NOTES_SEARCH] = notes_tool.search_notes
+
+        from components.tools.file_reader import FileReaderTool
+        file_reader = FileReaderTool(self.llm)
+        self._registry[Intent.FILE_READ] = file_reader.read_file
 
     def dispatch(self, intent: Intent, query: str) -> ToolResult | None:
         """

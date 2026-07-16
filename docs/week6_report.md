@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 6 of 10
 **Primary goal:** Close two open stated requirements (file management, error handling). Build error handling structurally into every new tool.
-**Status:** 🔄 In Progress (T1–T2 complete, T3–T7 pending)
+**Status:** 🔄 In Progress (T1–T3 complete, T4–T7 pending)
 
 ---
 
@@ -13,7 +13,7 @@ Three facts from Week 5 shaped Week 6's execution order:
 
 **Error handling was built first, not retrofitted.** The sprint plan originally listed error handling as T4. It was executed as T1 because every tool built this week inherits structural protections by default. Building T2 (Notes Tool) before T1 (Error Architecture) would have meant retrofitting protections onto an already-written tool — the exact pattern the sprint principle was designed to prevent.
 
-**"Information retrieval" was reframed before building.** The project objective referred to DuckDuckGo web search, which requires internet. This is incompatible with the fully offline constraint. The requirement is reinterpreted as local knowledge retrieval — searching notes, SQLite facts, and local file contents. This is documented in `docs/known_limitations.md` and is the basis for T7.
+**"Information retrieval" was reframed before building.** The project objective referred to DuckDuckGo web search, which requires internet. This is incompatible with the fully offline constraint. The requirement is reinterpreted as local knowledge retrieval — searching notes, SQLite facts, and local file contents. This is documented in `docs/known_limitations.md` and is the basis for T3 and T7.
 
 **qwen2.5:3b warm latency confirmed.** The 9.47s figure from the Week 5 harness was cold-start contamination. Warm inference confirmed at **0.78s** via explicit warm-up call — consistent with the 0.85–1.04s range measured during the keep_alive session. The model decision stands.
 
@@ -49,7 +49,6 @@ Turn 2: SYSTEM_QUERY  → [Intent] SYSTEM_QUERY  → Stage 1 silent ✅
 Turn 3: NOTES_CREATE  → [Intent] NOTES_CREATE  → Stage 1 silent ✅
 Turn 4: CHAT          → [Orchestrator] Stage 1: memory context building (CHAT path) ✅
 ```
-
 Stage 1 fires only on CHAT path. All three tool path variants (time, system, notes) confirm the optimisation from Week 5 T2 is intact after the Week 6 changes.
 
 ---
@@ -106,7 +105,27 @@ Zero-shot prompt strips conversational filler ("Take a note, I need to...") and 
 
 ---
 
-### T2 — Time Formatter Fix
+### T3 — File Reader Tool (Information Retrieval)
+
+**File:** `components/tools/file_reader.py`
+
+Closes the first half of the offline "information retrieval" requirement by enabling dynamic, cross-drive local file reading and automatic text summarization.
+
+**Capabilities:**
+- **Dynamic OS Resolution:** Utilizes `pathlib.Path.home()` for cross-platform and cross-drive user directory targeting, completely avoiding brittle YAML configuration files or hardcoded usernames. (e.g., successfully bridges execution on Drive D: to read from user directories on Drive C:).
+- **Intelligent Extraction:** Employs a zero-shot LLM prompt to isolate target filenames from natural speech ("Read the file test report" → "test report").
+- **Auto-Summarization Threshold:** Implemented a character-count constraint (>500 chars). If a document is too long for comfortable real-time TTS playback, TARA automatically triggers a secondary LLM call to generate a concise 1-2 sentence spoken summary instead of verbatim reading.
+
+**Resilience & Security (Tier 1 Integration):**
+- **Path Traversal Sandbox:** Hard-restricted to a whitelist of `Desktop`, `Documents`, `Downloads`, and `data/notes`.
+- **OneDrive OS Fallback:** Automatically detects and reroutes paths if the Windows OS has silently hijacked the user's Desktop/Documents folders into a OneDrive backup directory (`C:\Users\Name\OneDrive\Desktop`).
+
+**Intent Routing:** Added `FILE_READ`. Solved pattern shadowing during testing by strictly ordering the broad `"read the "` triggers safely beneath the Notes Tool's specific `"read my last note"` triggers.
+
+---
+
+# Fix
+## Time Formatter Fix (Task 2)
 
 The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Sunday") before `date_full` (e.g. "Sunday, July 12, 2026"), producing "Sunday, Sunday, July 12, 2026." Fixed by removing `day_str` from the return string and adding `.strip()` to `date_full`. Result: "It's 05:30 PM on Sunday, July 12, 2026."
 
@@ -120,9 +139,9 @@ The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Su
 | Offline speech recognition | ✅ |
 | Local LLM inference | ✅ |
 | Context-aware dialogue management | ✅ |
-| **Agentic tool execution** | ✅ (system, time, notes) |
+| **Agentic tool execution** | ✅ (system, time, notes, files) |
 | **File management** | ✅ (notes create/read/list/search) |
-| **Information retrieval** | ⏳ T7 — reframed as local search |
+| **Information retrieval** | ✅ (file reading) / ⏳ T7 (context search) |
 | Natural voice response | ✅ |
 | Modular architecture | ✅ |
 | **Robust error handling** | ✅ |
@@ -135,8 +154,7 @@ The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Su
 
 | Task | Description | Priority |
 |------|-------------|----------|
-| T3 | File Reader Tool | 🔴 Critical |
-| T4 | Calculator Tool | 🟡 Medium |
+| T4 | Calculator Tool | 🔴 Critical |
 | T5 | Evaluation Harness — Category A2 adversarial | 🟡 High |
 | T6 | IntentDetector extension + ≥30 benchmark | 🟡 High |
 | T7 | Local information retrieval (notes + facts search) | 🟢 Medium |
@@ -145,6 +163,7 @@ The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Su
 
 ## Lessons Learned
 
-- **Error handling first is not overhead — it is the foundation.** Building T1 before T2 meant the Notes Tool inherited structural protections by default. Every `ToolExpectedError` in the Notes Tool works correctly because the dispatcher was designed to handle it before the tool was written.
-- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS for note creation is a property of a short extraction prompt returning a short response. This number will not generalise to file summarization tasks. A TTFS category named "LLM-assisted" without specifying prompt complexity is misleading.
-- **Stage 1 evidence requires a debug print.** Removing the debug print in Week 5 left a 10-point scoring gap. Restoring it took 30 seconds. Always maintain observability infrastructure — never remove debug logging without replacing it with equivalent evidence.
+- **Error handling first is not overhead — it is the foundation.** Building T1 before T2 meant the Notes Tool inherited structural protections by default. Every `ToolExpectedError` works correctly because the dispatcher was designed to handle it before the tool was written.
+- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS for note creation is a property of a short extraction prompt returning a short response. This number will not generalise to large file summarization tasks.
+- **Stage 1 evidence requires a debug print.** Removing the debug print in Week 5 left a 10-point scoring gap. Restoring it took 30 seconds. Always maintain observability infrastructure.
+- **OS-level abstractions beat hardcoded configuration.** Attempting to use a static `settings.yaml` for file paths would have failed on Windows setups with OneDrive active or execution across multiple hard drives. By relying on Python's `pathlib` OS interrogations, cross-drive compatibility and folder hijacks were handled dynamically without brittle technical debt.
