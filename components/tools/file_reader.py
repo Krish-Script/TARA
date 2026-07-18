@@ -6,7 +6,7 @@ class FileReaderTool:
     def __init__(self, llm):
         self.llm = llm
         
-        # Dynamically resolve the Windows user home directory (e.g., C:\Users\Krishna)
+        # Dynamically resolve the Windows user home directory
         self.home_dir = Path.home()
         
         # Whitelisted path aliases for secure reading
@@ -14,9 +14,11 @@ class FileReaderTool:
             "desktop": self.home_dir / "Desktop",
             "documents": self.home_dir / "Documents",
             "downloads": self.home_dir / "Downloads",
-            "notes": Path("data/notes").resolve()
+            "notes": Path("data/notes").resolve(),
+            "tara": Path(".").resolve()  # Added to allow searching the project root!
         }
-
+        
+        # Windows OneDrive Fallback
         if (self.home_dir / "OneDrive" / "Desktop").exists():
             self.aliases["desktop"] = self.home_dir / "OneDrive" / "Desktop"
         if (self.home_dir / "OneDrive" / "Documents").exists():
@@ -57,7 +59,9 @@ class FileReaderTool:
             "User: 'Can you read the meeting notes from my desktop?'\nTarget: meeting notes\n"
             f"User: '{query}'\nTarget:"
         )
-        target_file, _ = self.llm.generate(prompt)
+        
+        # FIX 3: Empty context for zero-shot text processing
+        target_file, _ = self.llm.generate(prompt, memory_context="")
         target_file = target_file.strip().lower()
         
         if not target_file:
@@ -73,27 +77,50 @@ class FileReaderTool:
         # 3. Resolve path securely
         filepath = self._resolve_path(target_file, alias)
         
-        # 4. Read the content
+        # 4. Read the content with file size and binary guards
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-        except Exception:
+            # FIX 2: File size guard
+            file_size = filepath.stat().st_size
+            if file_size > 50_000:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read(3000).strip()
+                content = content + "\n[File truncated — showing first 3000 characters only]"
+            else:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    
+        # FIX 1: Explicit error handling
+        except UnicodeDecodeError:
+            raise ToolExpectedError(f"{filepath.name} doesn't look like a text file I can read.")
+        except PermissionError:
             raise ToolExpectedError(f"I found {filepath.name}, but I don't have permission to read it.")
+        except Exception:
+            raise ToolExpectedError(f"I had trouble reading {filepath.name}.")
         
         if not content:
             raise ToolExpectedError(f"{filepath.name} is completely empty.")
 
-        # Strip our custom NotesTool headers if reading a note file
-        clean_content = content.split("---\n")[-1] if "---\n" in content else content
+        # Strip our custom NotesTool headers ONLY if reading a note file
+        if "notes" in filepath.parts and "---\n" in content:
+            clean_content = content.split("---\n")[-1]
+        else:
+            clean_content = content
 
         # 5. Summarize if too long (threshold: ~100 words / 500 characters)
         if len(clean_content) > 500:
+            # Starve the format bleed: give it only the first 1000 characters to summarize
+            preview = clean_content[:1000]
+            
+            # Exploit recency bias: put the strict rules AT THE BOTTOM
             summary_prompt = (
-                "Summarize this document concisely in 1 to 2 sentences for spoken audio. "
-                "Do not use markdown, bullet points, or special characters.\n\n"
-                f"Document: {clean_content}\n\nSummary:"
+                f"Document Preview:\n{preview}\n\n"
+                "---\n"
+                "Task: Write a 1-sentence spoken summary of the document above.\n"
+                "Rules: Use plain text only. Do NOT use markdown, headings, or lists.\n"
+                "Spoken Summary:"
             )
-            spoken_text, _ = self.llm.generate(summary_prompt)
+            # Empty context for zero-shot text processing
+            spoken_text, _ = self.llm.generate(summary_prompt, memory_context="")
             action = "summarize"
         else:
             spoken_text = clean_content

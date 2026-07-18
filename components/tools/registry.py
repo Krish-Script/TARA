@@ -79,6 +79,10 @@ class ToolRegistry:
         file_reader = FileReaderTool(self.llm)
         self._registry[Intent.FILE_READ] = file_reader.read_file
 
+        from components.tools.calculator_tool import CalculatorTool
+        calculator = CalculatorTool(llm=self.llm)  # pass llm same as notes/file reader
+        self._registry[Intent.CALCULATION] = calculator.run
+
     def dispatch(self, intent: Intent, query: str) -> ToolResult | None:
         """
         Dispatch to the registered tool for this intent.

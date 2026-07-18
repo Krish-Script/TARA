@@ -64,6 +64,8 @@ INTENT_TEST_CASES = [
     ("What time do trains run?",       Intent.CHAT, "edge — time ambiguous"),
     ("How is temperature measured?",   Intent.CHAT, "edge — temperature concept"),
     ("Do you have a good memory?",     Intent.CHAT, "edge — memory concept"),
+    ("What is a neural network?",     Intent.CHAT,        "edge — what is concept"),
+    ("What's the weather like today?", Intent.CHAT,        "edge — what's ambiguous"),
 ]
 
 # ── Tool pipeline tests ──────────────────────────────────────

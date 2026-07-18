@@ -45,6 +45,8 @@ class ToolFormatter:
             Intent.NOTES_LIST:   ToolFormatter._format_notes_list,
             Intent.NOTES_SEARCH: ToolFormatter._format_notes_search,
             Intent.FILE_READ: ToolFormatter._format_file_read,
+
+            Intent.CALCULATION: ToolFormatter._format_calculation,
         }
 
         formatter = formatters.get(intent, ToolFormatter._format_generic)
@@ -149,6 +151,13 @@ class ToolFormatter:
             return f"The file {filename} is quite long, so here is a summary: {content}"
 
         return f"Here is what {filename} says: {content}"
+    
+    @staticmethod
+    def _format_calculation(data: dict) -> str:
+        spoken = data.get("spoken_result", "")
+        if not spoken:
+            return "I couldn't compute that."
+        return f"That's {spoken}."
 
     # ── Generic fallback ─────────────────────────────────────
 

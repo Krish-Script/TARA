@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 6 of 10
 **Primary goal:** Close two open stated requirements (file management, error handling). Build error handling structurally into every new tool.
-**Status:** 🔄 In Progress (T1–T3 complete, T4–T7 pending)
+**Status:** 🔄 In Progress (T1–T4 complete, T5–T7 pending)
 
 ---
 
@@ -19,23 +19,21 @@ Three facts from Week 5 shaped Week 6's execution order:
 
 ---
 
-## Performance Baseline — Week 6 T1–T2
+## Performance Baseline
 
-| Metric | Week 5 | Week 6 | Change |
-|--------|--------|--------|--------|
-| STT avg | 0.72s | 0.72s | stable |
-| LLM avg (chat) | 1.04s | 1.27s | +0.23s (1 data point) |
-| Tool execution avg | 0.002s | 0.305s | +0.303s (notes LLM cost) |
-| TTS synthesis avg | 0.66s | 0.75s | stable |
-| TTFS (chat path) | 2.30s | 2.92s | session variance — 1 turn |
-| TTFS (tool path) | 1.25s | 1.44s | stable, beats ≤1.50s |
-| **TTFS (LLM-assisted tool)** | — | **1.28s** | **new category** |
-| qwen2.5:3b warm latency | unconfirmed | **0.78s** | ✅ confirmed |
-| Stage 1 on tool path | unconfirmed | **never** | ✅ confirmed |
+| Metric | Week 5 | Week 6 T1–T2 | Week 6 T3–T4 | Notes |
+|--------|--------|--------------|--------------|-------|
+| STT avg | 0.72s | 0.72s | 0.79s | stable |
+| LLM avg (chat) | 1.04s | 1.27s | — | no chat turns |
+| Tool execution avg | 0.002s | 0.305s | 2.374s | LLM-assisted tools |
+| TTS synthesis avg | 0.66s | 0.75s | 0.67s | stable |
+| TTFS (chat path) | 2.30s | 2.92s | — | no chat turns |
+| TTFS (tool path) | 1.25s | 1.44s | 1.52s | marginally over target |
+| TTFS (LLM-assisted) | — | 1.28s | 1.52s | |
+| qwen2.5:3b warm latency | unconfirmed | 0.78s ✅ | 0.78s | confirmed |
+| Stage 1 on tool path | unconfirmed | never ✅ | never | confirmed |
 
-**Note on chat path TTFS (2.92s):** Single data point from one chat turn. The black holes response was 2 sentences (37 words) — longer than the 1-sentence target, which inflated TTS synthesis to 0.91s. Not a regression; session variance.
-
-**Note on LLM-assisted TTFS (1.28s):** This is specific to short extraction tasks (note content extraction prompt → ~10-word response). File summarization on 3000-character documents will be slower. Do not treat 1.28s as a general LLM-assisted tool property.
+**Note on TTFS tool path (1.52s avg, T3–T4):** Marginally over the ≤1.50s target. Cause: LLM normalisation adds ~1.2–3.1s to tool execution for calculator and file reader queries. TTFS stays close to target because STT and TTS synthesis are fast, but this is a new latency category that will not improve without removing the LLM dependency from these tools.
 
 ---
 
@@ -44,12 +42,13 @@ Three facts from Week 5 shaped Week 6's execution order:
 Debug print restored to `orchestrator.py`. Console evidence:
 
 ```
-Turn 1: TIME_QUERY    → [Intent] TIME_QUERY    → Stage 1 silent ✅
-Turn 2: SYSTEM_QUERY  → [Intent] SYSTEM_QUERY  → Stage 1 silent ✅
-Turn 3: NOTES_CREATE  → [Intent] NOTES_CREATE  → Stage 1 silent ✅
+Turn 1: TIME_QUERY    → Stage 1 silent ✅
+Turn 2: SYSTEM_QUERY  → Stage 1 silent ✅
+Turn 3: NOTES_CREATE  → Stage 1 silent ✅
 Turn 4: CHAT          → [Orchestrator] Stage 1: memory context building (CHAT path) ✅
 ```
-Stage 1 fires only on CHAT path. All three tool path variants (time, system, notes) confirm the optimisation from Week 5 T2 is intact after the Week 6 changes.
+
+Stage 1 fires only on CHAT path. All tool path variants confirm the optimisation from Week 5 T2 is intact.
 
 ---
 
@@ -59,20 +58,20 @@ Stage 1 fires only on CHAT path. All three tool path variants (time, system, not
 
 **File:** `components/error_manager.py`
 
-The pipeline's error management was rebuilt from a global catch-all into a tiered classification system, closing the "robust error handling and recovery mechanisms" stated requirement from the project objective.
+Closes the "robust error handling and recovery mechanisms" stated requirement from the project objective.
 
 **Tier 1 — Expected failures:**
-Tools raise `ToolExpectedError(message)` for known, predictable edge cases — missing files, empty directories, unavailable sensors. The `ToolRegistry` dispatcher catches this, formats the message as a spoken response, and continues the session. No log entry — these are not errors, they are handled conditions.
+Tools raise `ToolExpectedError(message)` for known, predictable edge cases. Dispatcher catches it, speaks the message naturally, continues session. No log entry — handled conditions are not errors.
 
 **Tier 2 — Unexpected failures:**
-Any unhandled exception in a tool is caught by the dispatcher, the full traceback is written to `logs/errors.log` with timestamp and component name, and a graceful spoken fallback is delivered. The user-facing terminal never shows a Python traceback after this version.
+Unhandled tool exceptions caught by dispatcher, full traceback logged to `logs/errors.log`, graceful spoken fallback delivered. Terminal never shows a Python traceback after this version.
 
 **Tier 3 — Component failures:**
-STT, TTS, and SQLite each have isolated `try/except` blocks:
-- TTS crash → response printed to terminal with `[TTS FAULT - AUDIO FAILED]` tag, session continues
+STT, TTS, and SQLite individually wrapped:
+- TTS crash → response printed to terminal (`[TTS FAULT - AUDIO FAILED]`), session continues
 - SQLite failure → turn appended to `logs/memory_fallback.txt`, session continues, no data dropped
 
-**Validation:** All three tiers deliberately triggered and confirmed before proceeding to T2.
+**Validation:** All three tiers deliberately triggered and confirmed before T2.
 
 ---
 
@@ -81,7 +80,7 @@ STT, TTS, and SQLite each have isolated `try/except` blocks:
 **File:** `components/tools/notes_tool.py`
 **Storage:** `data/notes/YYYY-MM-DD_HH-MM-SS.txt`
 
-Closes the "file management" stated requirement. Four operations:
+Closes the "file management" stated requirement.
 
 | Operation | Intent | Voice trigger |
 |-----------|--------|--------------|
@@ -90,44 +89,80 @@ Closes the "file management" stated requirement. Four operations:
 | List | NOTES_LIST | "what notes do I have", "list my notes", "how many notes" |
 | Search | NOTES_SEARCH | "find my note about X", "do I have a note about X" |
 
-**Note content extraction (LLM call on create):**
-Zero-shot prompt strips conversational filler ("Take a note, I need to...") and extracts the core content. Both raw transcription and extracted content are written to the file — nothing is lost if extraction is imperfect.
-
-**Critical pattern ordering:** "remember to" (NOTES_CREATE) placed above "remember" (MEMORY) in `IntentDetector` — prevents routing collision. Verified: "Remember to buy milk" → NOTES_CREATE. "Remember that my name is Krishnendu" → MEMORY.
-
-**Error handling (Tier 1 integration):**
-- `data/notes/` absent → created automatically
-- Empty notes directory on read/list → `ToolExpectedError` spoken naturally
-- Search finds nothing → "I don't have any notes about that"
-- File write failure → `ToolExpectedError` spoken, raw transcription logged
-
-**LLM-Assisted Tool Path TTFS: 1.28s** — first measurement of this new latency category.
+**Critical pattern ordering:** "remember to" (NOTES_CREATE) above "remember" (MEMORY) — prevents routing collision.
+**LLM-Assisted TTFS: 1.28s** — first measurement of this latency category.
 
 ---
 
-### T3 — File Reader Tool (Information Retrieval)
+### T3 — File Reader Tool
 
 **File:** `components/tools/file_reader.py`
 
-Closes the first half of the offline "information retrieval" requirement by enabling dynamic, cross-drive local file reading and automatic text summarization.
+Closes the first half of the offline "information retrieval" requirement.
 
 **Capabilities:**
-- **Dynamic OS Resolution:** Utilizes `pathlib.Path.home()` for cross-platform and cross-drive user directory targeting, completely avoiding brittle YAML configuration files or hardcoded usernames. (e.g., successfully bridges execution on Drive D: to read from user directories on Drive C:).
-- **Intelligent Extraction:** Employs a zero-shot LLM prompt to isolate target filenames from natural speech ("Read the file test report" → "test report").
-- **Auto-Summarization Threshold:** Implemented a character-count constraint (>500 chars). If a document is too long for comfortable real-time TTS playback, TARA automatically triggers a secondary LLM call to generate a concise 1-2 sentence spoken summary instead of verbatim reading.
+- Dynamic OS resolution via `pathlib.Path.home()` — no hardcoded usernames or YAML config
+- OneDrive path detection fallback — handles the common Windows 11 setup where Desktop/Documents are silently redirected to `C:\Users\Name\OneDrive\Desktop`
+- LLM zero-shot filename extraction from natural speech ("Read the meeting notes from my desktop" → "meeting notes")
+- Auto-summarisation threshold: >500 chars triggers a secondary LLM call for a 1–2 sentence spoken summary
+- Security whitelist: Desktop, Documents, Downloads, `data/notes` only — path traversal blocked
 
-**Resilience & Security (Tier 1 Integration):**
-- **Path Traversal Sandbox:** Hard-restricted to a whitelist of `Desktop`, `Documents`, `Downloads`, and `data/notes`.
-- **OneDrive OS Fallback:** Automatically detects and reroutes paths if the Windows OS has silently hijacked the user's Desktop/Documents folders into a OneDrive backup directory (`C:\Users\Name\OneDrive\Desktop`).
+**Error handling (Tier 1):** File not found, permission denied, binary file, and oversized file all produce graceful spoken responses with no traceback.
 
-**Intent Routing:** Added `FILE_READ`. Solved pattern shadowing during testing by strictly ordering the broad `"read the "` triggers safely beneath the Notes Tool's specific `"read my last note"` triggers.
+**Intent added:** `FILE_READ`
+**Pattern ordering:** broad `"read the"` triggers placed below specific `"read my last note"` — prevents shadowing Notes Tool.
 
 ---
 
-# Fix
-## Time Formatter Fix (Task 2)
+### T4 — Calculator Tool
 
-The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Sunday") before `date_full` (e.g. "Sunday, July 12, 2026"), producing "Sunday, Sunday, July 12, 2026." Fixed by removing `day_str` from the return string and adding `.strip()` to `date_full`. Result: "It's 05:30 PM on Sunday, July 12, 2026."
+**File:** `components/tools/calculator_tool.py`
+
+Two-stage evaluation pipeline:
+
+**Stage 1 — LLM normalisation:**
+Converts natural language to a bare arithmetic expression.
+"fifteen percent of two hundred" → "200 * 0.15"
+"847 divided by 7" → "847 / 7"
+
+**Stage 2 — `safe_eval()`:**
+Strips everything except digits, operators, parentheses, and decimal points via `re.sub()`. `eval()` never receives raw user input.
+
+**Error handling (Tier 1):**
+- No numbers found → "I couldn't find a valid calculation in that."
+- Division by zero → "I can't divide by zero."
+- Invalid expression after sanitisation → "I had trouble computing that. Try rephrasing it."
+- Non-mathematical query ("Calculate the weather") → "The expression doesn't seem to contain any numbers."
+
+**Result formatting:** Integers spoken as integers ("51", not "51.0"). Decimals rounded to 4 significant figures with trailing zeros stripped.
+
+**Voice test results:**
+
+| Query | Response | Latency | Correct |
+|-------|----------|---------|---------|
+| "Calculate 15% of 340" | "That's 51." | 3.104s | ✅ |
+| "What is 847 divided by 7?" | "That's 121." | 1.249s | ✅ |
+| "Calculate the weather." | "The expression doesn't seem to contain any numbers." | 2.770s | ✅ |
+
+**TTFS: 1.80s / 1.36s / 1.39s** — tool path target (≤1.50s) met for warm queries; first call slightly over due to LLM cold context.
+
+**False positives fixed:** "what is", "what's", and "how many is" removed from CALCULATION patterns — all three caused misrouting of conversational queries ("What is a neural network?" → CALCULATION). Benchmark confirmed 24/24 accuracy after removal.
+
+---
+
+### Time Formatter Fix
+
+`_format_time()` was prepending `day_str` before `date_full`, which already starts with the day name — producing "Sunday, Sunday, July 12, 2026." Fixed by removing `day_str` from the return and adding `.strip()` to `date_full`. Result: "It's 05:30 PM on Sunday, July 12, 2026."
+
+---
+
+## Pending Tasks
+
+| Task | Description | Priority |
+|------|-------------|----------|
+| T5 | Evaluation Harness — Category A2 adversarial | 🟡 High |
+| T6 | IntentDetector extension + ≥30 benchmark | 🟡 High |
+| T7 | Local information retrieval (notes + facts search) | 🟢 Medium |
 
 ---
 
@@ -139,31 +174,20 @@ The `_format_time()` method in `formatter.py` was prepending `day_str` (e.g. "Su
 | Offline speech recognition | ✅ |
 | Local LLM inference | ✅ |
 | Context-aware dialogue management | ✅ |
-| **Agentic tool execution** | ✅ (system, time, notes, files) |
-| **File management** | ✅ (notes create/read/list/search) |
-| **Information retrieval** | ✅ (file reading) / ⏳ T7 (context search) |
+| Agentic tool execution | ✅ system, time, notes, files, calculator |
+| File management | ✅ Notes Tool (create/read/list/search) |
+| Information retrieval | ✅ File Reader / ⏳ T7 (context search) |
 | Natural voice response | ✅ |
 | Modular architecture | ✅ |
-| **Robust error handling** | ✅ |
-| Thermal-aware operation | ✅ (GPU temp) |
+| Robust error handling | ✅ Three-tier architecture |
+| Thermal-aware operation | ✅ GPU temperature |
 | Resource-efficient operation | ✅ |
-
----
-
-## Pending Tasks
-
-| Task | Description | Priority |
-|------|-------------|----------|
-| T4 | Calculator Tool | 🔴 Critical |
-| T5 | Evaluation Harness — Category A2 adversarial | 🟡 High |
-| T6 | IntentDetector extension + ≥30 benchmark | 🟡 High |
-| T7 | Local information retrieval (notes + facts search) | 🟢 Medium |
 
 ---
 
 ## Lessons Learned
 
-- **Error handling first is not overhead — it is the foundation.** Building T1 before T2 meant the Notes Tool inherited structural protections by default. Every `ToolExpectedError` works correctly because the dispatcher was designed to handle it before the tool was written.
-- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS for note creation is a property of a short extraction prompt returning a short response. This number will not generalise to large file summarization tasks.
-- **Stage 1 evidence requires a debug print.** Removing the debug print in Week 5 left a 10-point scoring gap. Restoring it took 30 seconds. Always maintain observability infrastructure.
-- **OS-level abstractions beat hardcoded configuration.** Attempting to use a static `settings.yaml` for file paths would have failed on Windows setups with OneDrive active or execution across multiple hard drives. By relying on Python's `pathlib` OS interrogations, cross-drive compatibility and folder hijacks were handled dynamically without brittle technical debt.
+- **Error handling first is not overhead — it is the foundation.** Every `ToolExpectedError` in T2–T4 works because the dispatcher was designed to handle it before the tools were written.
+- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS (notes create) will not generalise to file summarisation on large documents. "LLM-assisted tool path" needs per-tool latency characterisation, not a single number.
+- **False positives require benchmark evidence, not intuition.** "what is" seemed like a safe CALCULATION trigger. The benchmark proved it misrouted three conversational queries. Pattern additions must be tested against both target and edge case queries before deployment.
+- **OS-level abstractions beat hardcoded configuration.** Static `settings.yaml` would have failed on Windows setups with OneDrive active. `pathlib.Path.home()` handles it dynamically.

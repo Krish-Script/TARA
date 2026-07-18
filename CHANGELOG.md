@@ -10,10 +10,48 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
  
 ### Planned — Week 6 (remaining)
-- T4: Calculator Tool (sandboxed mathematical evaluation)
 - T5: Evaluation Harness Upgrade (Adversarial Category A2)
 - T6: IntentDetector Extension (regression benchmark)
 - T7: Local Information Retrieval (notes and facts search)
+---
+
+## [0.18.0] - 2026-07-18
+
+### Added
+- `components/tools/calculator_tool.py` — Two-stage mathematical evaluation:
+  - Stage 1: LLM normalisation converts natural language to arithmetic expression ("fifteen percent of two hundred" → "200 * 0.15")
+  - Stage 2: `safe_eval()` strips all non-numeric characters via `re.sub()` before `eval()` — raw user input never reaches `eval()`
+  - Result formatting: integers spoken as integers ("51" not "51.0"), decimals rounded to 4 significant figures
+- `CALCULATION` intent classification added to `IntentDetector`
+- `_format_calculation()` template added to `ToolFormatter`
+
+### Changed
+- `components/tools/registry.py` — CalculatorTool registered for CALCULATION intent
+- `components/intent.py` — Three false-positive patterns removed from CALCULATION:
+  - `"what is"` → misrouted "What is a neural network?" to CALCULATION
+  - `"what's"` → misrouted "What's the weather like today?" to CALCULATION
+  - `"how many is"` → ambiguous, removed
+  - Retained: "calculate", "compute", "percent of", "divided by", "times", "multiplied by", "plus", "minus", "squared", "square root"
+
+### Performance
+
+| Query | Answer | Tool latency | TTFS |
+|-------|--------|-------------|------|
+| "Calculate 15% of 340" | "That's 51." | 3.104s | 1.80s |
+| "What is 847 divided by 7?" | "That's 121." | 1.249s | 1.36s |
+| "Calculate the weather." | Graceful error | 2.770s | 1.39s |
+
+Tool execution latency (1.2–3.1s) is LLM normalisation cost — the arithmetic itself is negligible. First call pays cold LLM context cost.
+
+### Validation
+- Benchmark: 24/24 (100%) after false positive removal
+- "Calculate the weather" → Tier 1 graceful error: "The expression doesn't seem to contain any numbers."
+- All three voice test queries confirmed correct
+
+### Technical Notes
+- Calculator TTFS exceeds ≤1.50s target on first call (1.80s) — LLM normalisation dependency is the cause. Acceptable for current scope; could be eliminated by replacing LLM with regex expression parser in a future sprint.
+- `eval()` safety: `re.sub(r"[^0-9+\-*/().\s\*]", "", expression)` + mandatory digit check before evaluation
+
 ---
 
 ## [0.17.0] - 2026-07-16
@@ -508,6 +546,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.15.0 | Notes tool + file management | Week 6 | ✅ Released |
 | 0.16.0 | Time formatter fix + Stage 1 verification | Week 6 | ✅ Released |
 | 0.17.0 | File Reader & Auto-Summarization | Week 6 | ✅ Released |
+| 0.18.0 | Calculator Tool + safe_eval + false positive fixes | Week 6 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
