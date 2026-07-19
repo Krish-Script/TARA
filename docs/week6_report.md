@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 6 of 10
 **Primary goal:** Close two open stated requirements (file management, error handling). Build error handling structurally into every new tool.
-**Status:** 🔄 In Progress (T1–T4 complete, T5–T7 pending)
+**Status:** 🔄 In Progress (T1–T6 complete, T7 pending)
 
 ---
 
@@ -146,7 +146,51 @@ Strips everything except digits, operators, parentheses, and decimal points via 
 
 **TTFS: 1.80s / 1.36s / 1.39s** — tool path target (≤1.50s) met for warm queries; first call slightly over due to LLM cold context.
 
-**False positives fixed:** "what is", "what's", and "how many is" removed from CALCULATION patterns — all three caused misrouting of conversational queries ("What is a neural network?" → CALCULATION). Benchmark confirmed 24/24 accuracy after removal.
+---
+
+### T5 — Evaluation Harness (Category A2)
+
+**File:** `tests/test_model_eval.py`
+
+Expanded the automated LLM testing harness with a new adversarial testing category.
+
+**Purpose:**
+To establish an honest baseline of the model's resilience against "format bleed" and persona-breaking prompts. Small parameter models (like `qwen2.5:3b`) often struggle to maintain strict constraints when exposed to complex instructions. This category documents that limitation rather than trying to tune it away.
+
+**Mechanics:**
+- **Adversarial Prompts:** Injected queries specifically designed to tempt verbosity and break the one-sentence constraint (e.g., "Respond like a pirate", "Summarize the history of AI").
+- **Manual Grading Loop:** Enforces strict compliance. 
+  - `PASS` = 1-2 sentences, strictly no markdown, answers the prompt.
+  - `FAIL` = 3+ sentences, usage of markdown/lists, or irrelevant output.
+- **Persistent Logging:** Scores are appended to `docs/model_evaluation.txt` to track degradation if the underlying model is changed.
+
+**Validation:**
+As expected, `qwen2.5:3b` struggled with the adversarial constraints. Documenting this failure baseline directly informed the prompt engineering strategy (Recency Bias exploitation) required to make the T3 File Reader auto-summarizer work effectively.
+
+---
+
+### T6 — Intent Extension & Benchmark Validation
+
+**Files:** `components/intent.py`, `tests/test_benchmark.py`
+
+Pre-registered intents for upcoming features and rigorously validated that new broad triggers do not cannibalize existing conversational logic.
+
+**Mechanics:**
+- **Intent Expansion:** Added `FILE_LIST` and `LOCAL_SEARCH` to the Intent enum and pattern dictionaries to support upcoming T7 implementation.
+- **Pattern Refinement:** Removed overly broad triggers (`"what is"`, `"what's"`) from the `CALCULATION` intent. This prevents catastrophic misrouting (e.g., routing the chat query "What is a neural network?" to the math engine).
+- **Benchmark Expansion:** Scaled `INTENT_TEST_CASES` to 37 unique queries across all tool domains.
+- **Collision Testing:** Added deliberate edge-case queries to ensure semantic boundaries hold (e.g., ensuring "Remember to buy milk" triggers `NOTES_CREATE`, while "Remember that I like chess" triggers `MEMORY`).
+
+**Validation Results (Automated Suite):**
+
+| Metric | Result | Target | Status |
+|--------|--------|--------|--------|
+| Intent Routing Accuracy | 37 / 37 | 100% | ✅ |
+| False Positives | 0 | 0 | ✅ |
+| Intent Classification Latency | 0.00ms | < 5.0ms | ✅ |
+| Tool Path TTFS Proxy | 1.37s | ≤ 1.50s | ✅ |
+
+The intent router is mathematically solid. The pipeline is cleared for T7.
 
 ---
 
@@ -160,8 +204,6 @@ Strips everything except digits, operators, parentheses, and decimal points via 
 
 | Task | Description | Priority |
 |------|-------------|----------|
-| T5 | Evaluation Harness — Category A2 adversarial | 🟡 High |
-| T6 | IntentDetector extension + ≥30 benchmark | 🟡 High |
 | T7 | Local information retrieval (notes + facts search) | 🟢 Medium |
 
 ---

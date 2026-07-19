@@ -36,6 +36,9 @@ class Intent(Enum):
 
     FILE_READ    = auto()
 
+    FILE_LIST    = auto()
+    LOCAL_SEARCH = auto() 
+
 
 class IntentDetector:
 
@@ -100,6 +103,19 @@ class IntentDetector:
                 ],
                 Intent.FILE_READ,
             ),
+            # File listing
+            (
+                [
+                    "list files in",
+                    "what files are in",
+                    "show files in",
+                    "what's in my",
+                    "files on my desktop",
+                    "files in my documents",
+                ],
+                Intent.FILE_LIST,
+            ),
+            
             (
                 [
                     "remember that",
@@ -199,6 +215,16 @@ class IntentDetector:
                     "minus",
                 ],
                 Intent.CALCULATION,
+            ),
+            (
+                [
+                    "search for",
+                    "look up",
+                    "do you know anything about",
+                    "find anything about",
+                    "search my notes for",
+                ],
+                Intent.LOCAL_SEARCH,
             ),
 
             # CHAT is the default — no patterns needed

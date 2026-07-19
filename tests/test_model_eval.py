@@ -56,6 +56,17 @@ FORMAT_PROMPTS = [
     "What is a neural network?",
     "How does GPS work?",
 ]
+# Category A2 — Adversarial Format Compliance
+# These prompts are designed to break the one-sentence constraint.
+# Expected score: 1-2/5. Do NOT tune the model to pass these.
+# Purpose: honest capability documentation, not a target to beat.
+ADVERSARIAL_PROMPTS = [
+    "Explain quantum computing in detail with examples and include the history.",
+    "Respond like a pirate and tell me about machine learning.",
+    "Give me a numbered list of five things I should know about Python.",
+    "Summarize everything about the history of AI from the 1950s to today.",
+    "Tell me about climate change, its causes, effects, and what I can do.",
+]
 
 # Category B — Context Recall
 # Each tuple: (memory_fact_to_inject, recall_question, keyword_in_correct_answer)
@@ -190,6 +201,63 @@ def run_category_a() -> tuple[list[dict], float]:
 
     return results, avg_latency
 
+def run_category_a2() -> tuple[int, list[dict]]:
+    """
+    Adversarial format compliance test.
+    Prompts designed to tempt verbosity and persona mode.
+    Score is for documentation only — do not optimise against it.
+    """
+    print("\n" + "=" * 60)
+    print("  CATEGORY A2 — Adversarial Format Compliance")
+    print("  These prompts are designed to break the one-sentence rule.")
+    print("  Expected: 1-2/5. Score stands regardless of result.")
+    print("=" * 60)
+
+    results = []
+
+    for i, prompt in enumerate(ADVERSARIAL_PROMPTS, 1):
+        response, latency = query_llm(prompt)
+        sentences  = count_sentences(response)
+        words      = count_words(response)
+        markdown   = has_markdown(response)
+
+        print(f"\n  [{i}] Prompt:   {prompt}")
+        print(f"      Response:  {response}")
+        print(f"      Sentences: {sentences}  |  Words: {words}  |  "
+              f"Markdown: {'YES ❌' if markdown else 'no ✅'}  |  "
+              f"Latency: {latency:.2f}s")
+
+        results.append({
+            "prompt":    prompt,
+            "response":  response,
+            "sentences": sentences,
+            "words":     words,
+            "markdown":  markdown,
+            "latency":   latency,
+        })
+
+    # Manual grading
+    print("\n  Grade each response:")
+    print("  PASS = 1-2 sentences, no markdown, answers question")
+    print("  FAIL = 3+ sentences, markdown, or doesn't answer")
+
+    a2_score = 0
+    for i, r in enumerate(results, 1):
+        while True:
+            grade = input(
+                f"  [{i}] {r['prompt'][:50]}...  PASS or FAIL? (p/f): "
+            ).strip().lower()
+            if grade in ("p", "pass", "1"):
+                a2_score += 1
+                break
+            elif grade in ("f", "fail", "0"):
+                break
+            print("      Enter p or f")
+
+    print(f"\n  Category A2 Score: {a2_score}/5")
+    print("  (This score is for documentation only)")
+    return a2_score, results
+
 
 # ── Category B ────────────────────────────────────────────────
 
@@ -301,6 +369,7 @@ def write_report(
         f.write("=" * 60 + "\n\n")
 
         f.write(f"Category A — Format Compliance:  {a_score}/5\n")
+        f.write(f"Category A2 — Adversarial Compliance: {a2_score}/5\n")
         f.write(f"Category B — Context Recall:     {b_score}/5\n")
         f.write(f"Category C — Avg word count:     {c_avg_words:.1f} words\n")
         f.write(f"Category C — Max word count:     {c_max_words} words\n")
@@ -312,6 +381,11 @@ def write_report(
             f.write(f"  [{i}] {r['sentences']}s / {r['words']}w / "
                     f"md={'Y' if r['markdown'] else 'N'}{flags}\n")
             f.write(f"      {r['response'][:120]}{'...' if len(r['response']) > 120 else ''}\n")
+
+        f.write("Category A2 details:\n")
+        for i, r in enumerate(a2_results, 1):
+            f.write(f"  [{i}] {r['sentences']}s / {r['words']}w — {r['prompt'][:60]}\n")
+            f.write(f"       {r['response'][:120]}{'...' if len(r['response']) > 120 else ''}\n")
 
         f.write("\nCategory B details:\n")
         for i, r in enumerate(b_results, 1):
@@ -383,6 +457,7 @@ if __name__ == "__main__":
     print("  Category A requires manual grading at the end.\n")
 
     a_results, a_latency  = run_category_a()
+    a2_score, a2_results = run_category_a2()
     b_score,   b_results  = run_category_b()
     c_avg, c_max, c_results = run_category_c()
 

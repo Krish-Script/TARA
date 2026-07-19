@@ -10,11 +10,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
  
 ### Planned — Week 6 (remaining)
-- T5: Evaluation Harness Upgrade (Adversarial Category A2)
-- T6: IntentDetector Extension (regression benchmark)
 - T7: Local Information Retrieval (notes and facts search)
+
 ---
 
+## [0.19.0] - 2026-07-19
+
+### Added
+- `tests/test_model_eval.py` — Added Category A2 (Adversarial Format Compliance) to evaluate model resilience against format bleed and persona-breaking prompts.
+- `components/intent.py` — Pre-registered `LOCAL_SEARCH` and `FILE_LIST` intents for the upcoming information retrieval tool.
+
+### Changed
+- `tests/test_benchmark.py` — Expanded automated test suite to 37 total queries.
+- `components/intent.py` — Refined `CALCULATION` pattern triggers to eliminate false positives on conversational queries (e.g., removing bare "what is" triggers).
+
+### Validation
+- **Benchmark Suite:** Achieved 37/37 (100.0%) intent routing accuracy with 0 false positives.
+- **Pipeline Latency:** Intent routing latency measured at 0.00ms. Non-LLM tool path TTFS proxy holding at 1.37s. 
+- **Model Evaluation (qwen2.5:3b):** 
+  - Category A (Format): 5/5
+  - Category B (Context): 5/5
+  - Category C (Words): Avg 24.2 (Target ≤35) / Max 35 (Target ≤60)
+  - Avg Chat Latency: 2.08s
+
+---
 ## [0.18.0] - 2026-07-18
 
 ### Added
@@ -547,6 +566,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.16.0 | Time formatter fix + Stage 1 verification | Week 6 | ✅ Released |
 | 0.17.0 | File Reader & Auto-Summarization | Week 6 | ✅ Released |
 | 0.18.0 | Calculator Tool + safe_eval + false positive fixes | Week 6 | ✅ Released |
+| 0.19.0 | Eval Harness & Benchmark Expansion | Week 6 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

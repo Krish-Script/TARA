@@ -170,3 +170,58 @@ Category C details:
 
   qwen2.5:3b warm inference (confirmed): 0.78s
 (Previous 9.47s measurement was cold-start contaminated — model loading from disk)
+============================================================
+Model: qwen2.5:3b
+Date:  2026-07-19 16:06
+============================================================
+
+Category A — Format Compliance:  5/5
+Category A2 — Adversarial Compliance: 5/5
+Category B — Context Recall:     5/5
+Category C — Avg word count:     24.2 words
+Category C — Max word count:     35 words
+LLM avg latency:                 2.08s
+
+Category A details:
+  [1] 1s / 16w / md=N
+      Photosynthesis is like a plant using sunlight to turn water and air into food and oxygen.
+  [2] 1s / 30w / md=N
+      RAM (Random Access Memory) stores data temporarily for quick access by the CPU, while VRAM is specifically used for stor...
+  [3] 1s / 16w / md=N
+      Linux was developed in 1991 by Linus Torvalds as a free operating system for personal computers.
+  [4] 1s / 21w / md=N
+      A neural network is like a brain that learns by practicing and adjusting its mistakes to get better at solving problems.
+  [5] 1s / 18w / md=N
+      GPS works by using satellites to determine the location of devices on Earth based on signal travel times.
+Category A2 details:
+  [1] 2s / 49w — Explain quantum computing in detail with examples and includ
+       Quantum computers use quantum bits (qubits) to process information using principles of quantum mechanics, allowing them ...
+  [2] 2s / 19w — Respond like a pirate and tell me about machine learning.
+       Arrr! Machine learning is when computers teach themselves through data, just like you learn from yer experiences at sea.
+  [3] 10s / 54w — Give me a numbered list of five things I should know about P
+       1. Python is an interpreted high-level programming language.
+2. It's used for web development, data analysis, and artifi...
+  [4] 1s / 42w — Summarize everything about the history of AI from the 1950s 
+       AI saw its birth in the 1950s with early pioneers, fizzled in the mid-1970s due to unrealistic expectations, and has sin...
+  [5] 1s / 31w — Tell me about climate change, its causes, effects, and what 
+       Climate change occurs due to greenhouse gases; affects weather patterns, sea levels, and ecosystems; and you can reduce ...
+
+Category B details:
+  [1] PASS — What is my name?
+       Your name is Krishnendu.
+  [2] PASS — What do I do for work?
+       You are a software engineer.
+  [3] PASS — What is my favourite game?
+       Your favorite game is chess.
+  [4] PASS — How many pets do I have?
+       You have two pets: your cats.
+  [5] PASS — How much VRAM does my laptop have?
+       Your laptop has 4GB of VRAM.
+
+Category C details:
+  [1] 35 words — Tell me everything about machine learning and AI.
+  [2] 22 words — Explain quantum computing in detail.
+  [3] 22 words — What is the history of the Python programming language?
+  [4] 18 words — How does the human brain work?
+  [5] 24 words — Tell me about climate change.
+

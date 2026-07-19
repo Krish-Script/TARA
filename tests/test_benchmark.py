@@ -55,6 +55,24 @@ INTENT_TEST_CASES = [
     ("Tell me a joke.",              Intent.CHAT,         "chat — joke"),
     ("What is recursion?",           Intent.CHAT,         "chat — tech concept"),
     ("How are you today?",           Intent.CHAT,         "chat — greeting"),
+    
+    # ── Calculator ───────────────────────────────────────────
+    ("Calculate 15 percent of 340.",      Intent.CALCULATION,   "calc — percent"),
+    ("What is 847 divided by 7?",         Intent.CALCULATION,   "calc — division"),
+    ("Compute 12 times 15.",              Intent.CALCULATION,   "calc — multiply"),
+
+    # ── Notes ────────────────────────────────────────────────
+    ("Take a note, buy milk tomorrow.",   Intent.NOTES_CREATE,  "notes — create"),
+    ("What was my last note?",            Intent.NOTES_READ,    "notes — read"),
+    ("List my notes.",                    Intent.NOTES_LIST,    "notes — list"),
+    ("Find my note about milk.",          Intent.NOTES_SEARCH,  "notes — search"),
+
+    # ── File ─────────────────────────────────────────────────
+    ("Read the README file.",             Intent.FILE_READ,     "file — read"),
+    ("List files in my documents.",       Intent.FILE_LIST,     "file — list"),
+
+    # ── Local search ─────────────────────────────────────────
+    ("Do you know anything about chess?", Intent.LOCAL_SEARCH,  "search — local"),
 
     # ── Edge cases — false positive detection ────────────────
     # These must NOT trigger tool routing despite containing
@@ -64,8 +82,11 @@ INTENT_TEST_CASES = [
     ("What time do trains run?",       Intent.CHAT, "edge — time ambiguous"),
     ("How is temperature measured?",   Intent.CHAT, "edge — temperature concept"),
     ("Do you have a good memory?",     Intent.CHAT, "edge — memory concept"),
-    ("What is a neural network?",     Intent.CHAT,        "edge — what is concept"),
-    ("What's the weather like today?", Intent.CHAT,        "edge — what's ambiguous"),
+    ("What is a neural network?",      Intent.CHAT, "edge — calc false pos"),
+    ("What's the history of Python?",  Intent.CHAT, "edge — calc false pos 2"),
+    ("Remember that I like chess.",    Intent.MEMORY, "memory — not notes"),
+    ("Remember to buy milk.",          Intent.NOTES_CREATE, "notes — not memory"),
+    ("What's the weather like today?", Intent.CHAT, "edge — what's ambiguous"),
 ]
 
 # ── Tool pipeline tests ──────────────────────────────────────
@@ -109,10 +130,10 @@ def run_intent_tests(detector: IntentDetector) -> tuple[int, int, list[str]]:
 
         if actual == expected:
             passes += 1
-            _pass(f"{description:30s}  {actual.name}  ({matched_str})")
+            _pass(f"{query:30s}  {actual.name}  ({matched_str})")
         else:
             failure = (
-                f"{description:30s}  "
+                f"{query:30s}  "
                 f"got {actual.name}, expected {expected.name}  ({matched_str})"
             )
             _fail(failure)
@@ -277,13 +298,12 @@ def print_summary(
 
     print()
     if intent_pct == 100 and tool_pct == 100 and not false_positives:
-        print("  ✅ All tests passed. Week 4 tool layer is solid.")
-        print("  Ready for Week 5.")
+        print("  ✅ All tests passed. Intent router and tool layers are solid.")
     elif false_positives:
-        print("  ⚠️  False positives found — fix intent.py patterns before Week 5.")
+        print("  ⚠️  False positives found — fix intent.py patterns.")
         print("  Remove bare trigger words; require specific phrases.")
     elif intent_pct < 90:
-        print("  ⚠️  Intent accuracy below 90% — review pattern list before Week 5.")
+        print("  ⚠️  Intent accuracy below 90% — review pattern list.")
     elif tool_pct < 100:
         print("  ⚠️  Tool failures detected — check system_monitor.py error output above.")
 
@@ -294,7 +314,7 @@ def print_summary(
 
 if __name__ == "__main__":
     print("\n" + "=" * 55)
-    print("  TARA — Week 4 Benchmark Suite")
+    print("  TARA — Intent & Tool Pipeline Benchmark Suite")
     print("=" * 55)
     print("  Initialising components...")
 
