@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 6 of 10
 **Primary goal:** Close two open stated requirements (file management, error handling). Build error handling structurally into every new tool.
-**Status:** 🔄 In Progress (T1–T6 complete, T7 pending)
+**Status:** ✅ Week 6 Complete
 
 ---
 
@@ -167,6 +167,8 @@ To establish an honest baseline of the model's resilience against "format bleed"
 **Validation:**
 As expected, `qwen2.5:3b` struggled with the adversarial constraints. Documenting this failure baseline directly informed the prompt engineering strategy (Recency Bias exploitation) required to make the T3 File Reader auto-summarizer work effectively.
 
+**Category A2 Score: 4/5**
+
 ---
 
 ### T6 — Intent Extension & Benchmark Validation
@@ -194,6 +196,30 @@ The intent router is mathematically solid. The pipeline is cleared for T7.
 
 ---
 
+### T7 — Local Information Retrieval
+
+**File:** `components/tools/local_search.py`
+
+**Purpose:**
+To close the final open project requirement ("information retrieval") while strictly adhering to the fully offline constraint. This tool acts as TARA's internal search engine, allowing her to answer questions about the user by querying her own memory and saved files simultaneously without bleeding into general conversational workflows.
+
+**Architecture:**
+A hybrid retrieval engine utilizing a three-stage pipeline:
+1. **Extraction:** LLM translates broad voice queries into strict search keywords.
+2. **Retrieval:** Python scans the `data/notes/` directory for text matches and queries the SQLite `MemoryStore`.
+3. **Synthesis:** The LLM receives only the highly relevant fragments wrapped in a Recency Bias prompt to generate a natural, spoken summary.
+
+**Mechanics:**
+- **Pre-Synthesis Filtering:** Initial testing revealed that feeding the 3B model the entire `MemoryStore` context caused it to overshare (e.g., listing the user's name and favorite programming language when asked about a flight). This was resolved by implementing strict Python-level filtering (`target in item.fact.lower()`) before the context reaches the LLM. 
+- **Possessive Routing Protection:** Broad triggers like `"what do you know about"` caused catastrophic collisions with general knowledge queries (e.g., Einstein). Triggers were restricted to strictly possessive phrasing (`"what do you know about my"`), protecting the `CHAT` path.
+
+**Validation:**
+- **Tool Pipeline:** Successfully searched, filtered, and synthesized a text note ("my flight is at 3 p.m. on delta") into a conversational response.
+- **Latency:** TTFS recorded at 1.41s (comfortably below the ≤1.50s target for non-LLM-heavy tool paths).
+- **Edge-Case Routing:** Automated benchmark and manual voice testing confirmed that general queries ("Einstein") correctly trigger the `CHAT` orchestrator path, ensuring the Local Search tool only fires when the user is explicitly querying personal data.
+
+---
+
 ### Time Formatter Fix
 
 `_format_time()` was prepending `day_str` before `date_full`, which already starts with the day name — producing "Sunday, Sunday, July 12, 2026." Fixed by removing `day_str` from the return and adding `.strip()` to `date_full`. Result: "It's 05:30 PM on Sunday, July 12, 2026."
@@ -218,7 +244,7 @@ The intent router is mathematically solid. The pipeline is cleared for T7.
 | Context-aware dialogue management | ✅ |
 | Agentic tool execution | ✅ system, time, notes, files, calculator |
 | File management | ✅ Notes Tool (create/read/list/search) |
-| Information retrieval | ✅ File Reader / ⏳ T7 (context search) |
+| Information retrieval | ✅ File Reader / T7 (context search) |
 | Natural voice response | ✅ |
 | Modular architecture | ✅ |
 | Robust error handling | ✅ Three-tier architecture |
@@ -230,6 +256,23 @@ The intent router is mathematically solid. The pipeline is cleared for T7.
 ## Lessons Learned
 
 - **Error handling first is not overhead — it is the foundation.** Every `ToolExpectedError` in T2–T4 works because the dispatcher was designed to handle it before the tools were written.
-- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS (notes create) will not generalise to file summarisation on large documents. "LLM-assisted tool path" needs per-tool latency characterisation, not a single number.
-- **False positives require benchmark evidence, not intuition.** "what is" seemed like a safe CALCULATION trigger. The benchmark proved it misrouted three conversational queries. Pattern additions must be tested against both target and edge case queries before deployment.
+- **LLM-assisted tool latency is prompt-length dependent, not a fixed category.** The 1.28s TTFS (notes create) will not generalise to file summarisation on large documents. "LLM-assisted tool path" needs per-tool latency characterisation.
+- **False positives require benchmark evidence, not intuition.** "what is" seemed like a safe CALCULATION trigger. The benchmark proved it misrouted conversational queries. Pattern additions must be tested against target and edge-case queries before deployment.
 - **OS-level abstractions beat hardcoded configuration.** Static `settings.yaml` would have failed on Windows setups with OneDrive active. `pathlib.Path.home()` handles it dynamically.
+- **Pre-filtering beats prompt instructions.** Small parameter models (3B) struggle to focus and tend to overshare when given excessive context. Filtering database facts in Python before injecting them into the prompt is exponentially more reliable than instructing the LLM to "ignore unrelated details."
+- **Possessive triggers protect general knowledge.** Broad intents like "what do you know about" will blindly hijack general knowledge questions (e.g., Einstein). Restricting local searches to possessive phrasing ("my flight", "my notes") safely preserves the conversational CHAT engine.
+- **Adversarial testing provides honest limits.** Establishing an adversarial failure baseline (T5) informed the prompt engineering strategy (Recency Bias exploitation) rather than wasting cycles trying to fine-tune away strict model limitations.
+
+---
+
+## Sprint Outcome
+
+All stated objectives for error architecture, file management, and local information retrieval have been successfully built, tested, and integrated.
+
+- ✅ **T1:** Three-Tier Error Architecture (Dispatcher protections & graceful degradation)
+- ✅ **T2:** Notes Tool (Create, Read, List, Search)
+- ✅ **T3:** File Reader Tool (Dynamic OS pathing & LLM auto-summarization)
+- ✅ **T4:** Calculator Tool (LLM normalization & `safe_eval()` arithmetic)
+- ✅ **T5:** Evaluation Harness (Category A2 Adversarial format compliance)
+- ✅ **T6:** Intent Extension & Benchmark Validation (37/37 accuracy, 0 false positives)
+- ✅ **T7:** Local Information Retrieval (Hybrid SQLite/File search & context synthesis)

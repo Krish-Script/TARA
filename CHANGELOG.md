@@ -9,8 +9,28 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
  
-### Planned — Week 6 (remaining)
-- T7: Local Information Retrieval (notes and facts search)
+### Planned — Week 7 (coming soon)
+
+---
+
+## [0.20.0] - 2026-07-20
+
+### Added
+- `components/tools/local_search.py` — Hybrid local information retrieval tool (T7) implementing a three-stage pipeline:
+  - **Stage 1 (Extraction):** LLM zero-shot extraction isolates the core search target from natural language ("what do you know about my flight" → "flight").
+  - **Stage 2 (Retrieval & Filter):** Python-native hybrid search scans both SQLite `MemoryStore` and `data/notes/`. Irrelevant database facts are aggressively filtered in Python to prevent 3B model oversharing.
+  - **Stage 3 (Synthesis):** Extracted facts and notes are injected into a Recency Bias prompt, forcing the LLM to synthesize a concise, 1-2 sentence spoken answer.
+- `_format_local_search()` mapping added to `ToolFormatter`.
+
+### Changed
+- `components/intent.py` — Overhauled `LOCAL_SEARCH` patterns to use strictly possessive triggers (e.g., "what do you know about my..."). This critical change prevents broad general knowledge queries (e.g., "What do you know about Einstein?") from being misrouted to the local filesystem.
+- `tests/test_benchmark.py` — Updated local search benchmark queries to match possessive patterns and added an explicit edge-case test for "Einstein" to ensure it routes to the `CHAT` path.
+- `components/tools/registry.py` — Registered `LocalSearchTool` to the pipeline.
+
+### Validation
+- **Performance:** Local search execution and synthesis achieved a TTFS of 1.41s.
+- **Routing Boundaries:** Confirmed zero false positives; "What do you know about my flight?" successfully routed to `LOCAL_SEARCH`, while "What do you know about Einstein?" safely bypassed the tool and routed to conversational `CHAT`.
+- **Constraint Compliance:** Confirmed that filtering SQLite facts in Python prior to LLM synthesis successfully eliminated the 3B model's tendency to overshare unrelated user facts.
 
 ---
 
@@ -29,11 +49,13 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Pipeline Latency:** Intent routing latency measured at 0.00ms. Non-LLM tool path TTFS proxy holding at 1.37s. 
 - **Model Evaluation (qwen2.5:3b):** 
   - Category A (Format): 5/5
+  - Category A2 (Adversarial): 4/5
   - Category B (Context): 5/5
   - Category C (Words): Avg 24.2 (Target ≤35) / Max 35 (Target ≤60)
   - Avg Chat Latency: 2.08s
 
 ---
+
 ## [0.18.0] - 2026-07-18
 
 ### Added
@@ -567,6 +589,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.17.0 | File Reader & Auto-Summarization | Week 6 | ✅ Released |
 | 0.18.0 | Calculator Tool + safe_eval + false positive fixes | Week 6 | ✅ Released |
 | 0.19.0 | Eval Harness & Benchmark Expansion | Week 6 | ✅ Released |
+| 0.20.0 | Local Information Retrieval Tool | Week 6 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

@@ -47,6 +47,8 @@ class ToolFormatter:
             Intent.FILE_READ: ToolFormatter._format_file_read,
 
             Intent.CALCULATION: ToolFormatter._format_calculation,
+
+            Intent.LOCAL_SEARCH: ToolFormatter._format_local_search,
         }
 
         formatter = formatters.get(intent, ToolFormatter._format_generic)
@@ -182,3 +184,7 @@ class ToolFormatter:
             return text
             
         return text[0].upper() + text[1:]
+    
+    @staticmethod
+    def _format_local_search(data: dict) -> str:
+        return data.get('answer', "I couldn't synthesize the information.")

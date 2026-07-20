@@ -83,6 +83,10 @@ class ToolRegistry:
         calculator = CalculatorTool(llm=self.llm)  # pass llm same as notes/file reader
         self._registry[Intent.CALCULATION] = calculator.run
 
+        from components.tools.local_search import LocalSearchTool
+        local_search = LocalSearchTool(self.llm)
+        self._registry[Intent.LOCAL_SEARCH] = local_search.search
+
     def dispatch(self, intent: Intent, query: str) -> ToolResult | None:
         """
         Dispatch to the registered tool for this intent.

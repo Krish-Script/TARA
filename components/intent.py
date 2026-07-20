@@ -218,11 +218,13 @@ class IntentDetector:
             ),
             (
                 [
-                    "search for",
-                    "look up",
-                    "do you know anything about",
-                    "find anything about",
-                    "search my notes for",
+                    "search my notes",
+                    "do i have any notes",
+                    "do i have any facts",
+                    "what do you know about my",
+                    "do you know anything about my",
+                    "find my note about",
+                    "any notes on my",
                 ],
                 Intent.LOCAL_SEARCH,
             ),

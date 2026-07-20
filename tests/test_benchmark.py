@@ -73,6 +73,7 @@ INTENT_TEST_CASES = [
 
     # ── Local search ─────────────────────────────────────────
     ("Do you know anything about chess?", Intent.LOCAL_SEARCH,  "search — local"),
+    ("What do you know about my flight?", Intent.LOCAL_SEARCH,  "search — local"),
 
     # ── Edge cases — false positive detection ────────────────
     # These must NOT trigger tool routing despite containing
@@ -87,6 +88,7 @@ INTENT_TEST_CASES = [
     ("Remember that I like chess.",    Intent.MEMORY, "memory — not notes"),
     ("Remember to buy milk.",          Intent.NOTES_CREATE, "notes — not memory"),
     ("What's the weather like today?", Intent.CHAT, "edge — what's ambiguous"),
+    ("What do you know about Einstein?",  Intent.CHAT, "edge — search false pos"),
 ]
 
 # ── Tool pipeline tests ──────────────────────────────────────

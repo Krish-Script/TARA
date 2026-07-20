@@ -2,8 +2,8 @@
 
 A fully offline, voice-controlled AI personal assistant running entirely on local hardware. No cloud APIs, no internet dependency, no data leaving the device.
 
-**Hardware:** NVIDIA RTX 3050 Laptop (4GB VRAM) · Windows 11 · Python 3.11.7  
-**Sprint:** Week 5 of 10 complete
+**Hardware:** NVIDIA RTX 3050 Laptop (4GB VRAM) · Windows 11 · Python 3.11.7
+**Sprint:** Week 6 of 10 complete 
 
 ---
 
@@ -16,69 +16,58 @@ A fully offline, voice-controlled AI personal assistant running entirely on loca
 | Conversational AI | ✅ | "Tell me about black holes" |
 | Cross-session memory | ✅ | "Remember that my name is Krishnendu" |
 | Fact recall | ✅ | "What do you remember about me?" |
+| System monitoring | ✅ | "What's my CPU usage?" / "How much VRAM?" |
 | Time and date | ✅ | "What time is it?" |
-| CPU monitoring | ✅ | "What's my CPU usage?" |
-| RAM monitoring | ✅ | "How much RAM am I using?" |
-| Disk monitoring | ✅ | "How much storage is left?" |
-| Battery monitoring | ✅ | "What's my battery level?" |
-| VRAM monitoring | ✅ | "How much VRAM am I using?" |
-| GPU temperature | ✅ | "What's the GPU temperature?" |
-| System uptime | ✅ | "How long has my system been running?" |
 | Offline TTS | ✅ | Natural voice via Piper hfc_female |
-| **File management** | **❌ Not built** | Stated requirement — Week 6 |
-| **Information retrieval** | **❌ Not built** | Stated requirement — Week 6 |
+| **Calculation** | ✅ | "Calculate 15% of 340" |
+| **File Management (Notes)** | ✅ | "Take a note, buy milk tomorrow" |
+| **Information Retrieval** | ✅ | "What do you know about my flight?" |
+| **File Reading** | ✅ | "Read the README file" |
+| **Error Architecture** | ✅ | 3-Tier graceful degradation (No fatal crashes) |
 
 ---
 
 ## Pipeline Architecture
 
-```
+```text
 Your Voice
     ↓
 [STT] faster-whisper (CPU, int8)
-    ↓ 0.59s avg
+    ↓ 0.72s avg
 [STT Corrections] regex word-boundary substitutions
     ↓
-[Orchestrator]
+[Orchestrator] & [ErrorManager]
     ↓
     ├── Command Registry (memory commands, exit)
     │
     └── _run_pipeline()
             ↓
         Stage 2: Intent Detection (<1ms, keyword routing)
-            ├── TIME_QUERY   ──→ TimeTool
             ├── SYSTEM_QUERY ──→ SystemMonitor
+            ├── TIME_QUERY   ──→ TimeTool
+            ├── CALCULATION  ──→ CalculatorTool (LLM normalization -> safe_eval)
+            ├── NOTES_*      ──→ NotesTool (Create/Read/List/Search)
+            ├── FILE_READ    ──→ FileReader (Path resolution -> LLM Summarization)
+            ├── LOCAL_SEARCH ──→ LocalSearchTool (Hybrid SQLite + File extraction)
             └── CHAT
                     ↓
                 Stage 1: Memory Context Retrieval (SQLite)
                     ↓
                 Stage 5: LLM Generation (qwen2.5:3b, GPU)
-                    ↓ 1.04s avg
+                    ↓ 1.04s - 1.27s avg
         Stage 6: Response Delivery (Piper TTS, CPU)
-            ↓ 0.66s synthesis avg
+            ↓ ~0.67s synthesis avg
         Stage 7: Persistence (SQLite)
             ↓
 Your Speakers
 ```
 
-**TTFS (time-to-first-syllable):**
-- Tool path: 1.25s avg
-- Chat path: 2.30s avg
-
 ---
 
-## Performance Baseline (Week 5)
-
-| Component | Avg | Notes |
-|-----------|-----|-------|
-| STT (Whisper base, CPU) | 0.59s | int8 quantisation |
-| Intent detection | <1ms | keyword matching |
-| Tool execution | 0.002–0.101s | 0.1s for CPU (psutil interval) |
-| LLM generation (qwen2.5:3b) | 1.04s | warm inference, GPU |
-| TTS synthesis (Piper) | 0.66s | first chunk only |
-| **TTFS — tool path** | **1.25s** | |
-| **TTFS — chat path** | **2.30s** | |
-| VRAM steady-state | ~2.2GB | 1.8GB headroom on 4GB card |
+## TTFS (time-to-first-syllable):
+- Standard Tool path: ~1.37s avg
+- LLM-Assisted Tool path: ~1.50s - 1.80s avg
+- Chat path: ~2.90s avg
 
 ---
 
@@ -86,11 +75,11 @@ Your Speakers
 
 | Component | Minimum | Used in this project |
 |-----------|---------|----------------------|
-| GPU | Any NVIDIA with 4GB+ VRAM | RTX 3050 Laptop 4GB |
-| RAM | 8GB | 16GB |
-| OS | Windows 10/11 | Windows 11 |
-| Python | 3.10+ | 3.11.7 |
-| Storage | 5GB free | ~8GB used |
+| GPU      | Any NVIDIA with 4GB+ VRAM | RTX 3050 Laptop 4GB |
+| RAM      | 8GB     | 16GB                  |
+| OS       | Windows 10/11 | Windows 11         |
+| Python   | 3.10+   | 3.11.7                |
+| Storage  | 5GB free| ~8GB used             |
 
 ---
 
@@ -98,9 +87,9 @@ Your Speakers
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| STT | faster-whisper | ≥1.0.0 |
+| STT   | faster-whisper | ≥1.0.0 |
 | LLM inference | Ollama + qwen2.5:3b | ≥0.4.0 |
-| TTS | Piper TTS binary | rhasspy release |
+| TTS   | Piper TTS binary | rhasspy release |
 | TTS voice | en_US-hfc_female-medium | rhasspy |
 | Memory | SQLite (built-in) | — |
 | System monitoring | psutil + pynvml | 7.2.2 / nvidia-ml-py |
@@ -108,52 +97,48 @@ Your Speakers
 | Language | Python | 3.11.7 |
 
 ---
-
 ## Project Structure
-
-```
+```text
 D:\TARA\
 ├── main.py                        # Entry point — audio loop only
 ├── config.py                      # All runtime configuration
 ├── requirements.txt
 ├── components\
-│   ├── stt.py                     # Speech-to-Text (Whisper)
-│   ├── llm.py                     # LLM interface (Ollama)
-│   ├── tts.py                     # TTS (Piper binary + PyAudio)
+│   ├── stt.py                     
+│   ├── llm.py                     
+│   ├── tts.py                     
 │   ├── memory.py                  # SQLite memory layer
-│   ├── intent.py                  # Keyword intent router
+│   ├── intent.py                  # 37-case intent routing dictionary
+│   ├── error_manager.py           # 3-Tier graceful degradation architecture
 │   └── orchestrator.py            # Pipeline coordinator
 │       └── tools\
 │           ├── registry.py        # Tool dispatcher + ToolResult
-│           ├── time_tool.py       # Date and time
-│           ├── system_monitor.py  # Hardware metrics
+│           ├── time_tool.py       
+│           ├── system_monitor.py  
+│           ├── calculator_tool.py # Two-stage safe math evaluation
+│           ├── notes_tool.py      # Local text file generation/management
+│           ├── file_reader.py     # OS path resolution & LLM file summarization
+│           ├── local_search.py    # Hybrid SQLite/file context retrieval
 │           └── formatter.py       # Raw dict → spoken language
 ├── tests\
-│   ├── test_stt.py
-│   ├── test_llm.py
-│   ├── test_tts.py
-│   ├── test_piper.py
-│   ├── test_benchmark.py          # Intent + tool pipeline validation
-│   └── test_model_eval.py         # Model quality harness
+│   ├── test_benchmark.py          # 100% passing intent + tool pipeline validation
+│   └── test_model_eval.py         # Automated model quality & adversarial harness
 ├── docs\
-│   ├── week1_report.md → week5_report.md
-│   ├── model_evaluation.txt       # llama3.2:3b / phi3.5 / qwen2.5:3b scores
-│   ├── research_notes.md
-│   └── known_limitations.md
+│   └── week1_report.md → week6_report.md
+├── data\
+│   └── notes\                     # TARA's generated text files
 ├── voices\                        # Piper voice models (gitignored)
 ├── piper_bin\                     # Piper binary (gitignored)
 └── tara_memory.db                 # SQLite database (gitignored)
 ```
-
 ---
 
 ## Setup
-
-```bash
-# 1. Install Ollama from https://ollama.com/download
+```Bash
+# 1. Install Ollama from [https://ollama.com/download](https://ollama.com/download)
 ollama pull qwen2.5:3b
 
-# 2. Download Piper binary from https://github.com/rhasspy/piper/releases
+# 2. Download Piper binary from [https://github.com/rhasspy/piper/releases](https://github.com/rhasspy/piper/releases)
 # Extract to D:\TARA\piper_bin\
 
 # 3. Download voice model from HuggingFace rhasspy/piper-voices
@@ -172,25 +157,23 @@ pip install -r requirements.txt
 # 7. Run
 python main.py
 ```
-
 ---
 
-## Voice Commands
-
+## Core Voice Commands
 | Say | Effect |
 |-----|--------|
 | "Quit" / "Exit" / "Goodbye" | Stop TARA |
 | "Clear memory" | Reset LLM conversation history |
 | "Remember that [fact]" | Store fact permanently |
 | "What do you remember about me?" | Recall stored facts |
+| "Take a note [content]" | Saves a timestamped text file |
+| "Read the [filename] file" | Auto-summarizes a local file |
+| "What do you know about my [topic]?" | Hybrid search of local notes and memory |
 
 ---
 
 ## Known Limitations
-
-See `docs/known_limitations.md` for full list. Key items:
-
-- Creative and persona prompts produce responses longer than one sentence
-- CPU temperature unavailable on Windows without third-party drivers
-- STT correction for "krishna" → "krishnendu" fires on queries about Krishna the deity
-- File management and information retrieval not yet implemented
+See docs/known_limitations.md for full list. Key items:
+- Creative and persona prompts produce responses longer than one sentence. (Documented in A2 Adversarial Harness).
+- CPU temperature unavailable on Windows without third-party drivers.
+- LLM-assisted tools (Calculator, File Reader) incur cold-start latency on the first invocation, resulting in TTFS > 1.50s.
