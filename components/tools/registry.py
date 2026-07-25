@@ -75,6 +75,8 @@ class ToolRegistry:
         self._registry[Intent.NOTES_LIST]   = notes_tool.list_notes
         self._registry[Intent.NOTES_SEARCH] = notes_tool.search_notes
 
+        self._registry[Intent.FILE_LIST] = notes_tool.list_notes
+
         from components.tools.file_reader import FileReaderTool
         file_reader = FileReaderTool(self.llm)
         self._registry[Intent.FILE_READ] = file_reader.read_file

@@ -140,7 +140,7 @@ class Orchestrator:
         """
         return [
             (self._is_exit,     self._handle_exit),
-            (self._is_clear,    self._handle_clear),
+            # (self._is_clear,    self._handle_clear),
             (self._is_remember, self._handle_remember),
             (self._is_recall,   self._handle_recall),
         ]
@@ -167,11 +167,6 @@ class Orchestrator:
         self._say("Goodbye! Have a great day.")
         return False  # signal main loop to stop
 
-    def _handle_clear(self, text: str) -> bool:
-        self.llm.clear_history()
-        self._say("Memory cleared. Starting fresh.")
-        return True
-
     def _handle_remember(self, text: str) -> bool:
         """
         Orchestrator detects the intent, extracts the fact, calls storage.
@@ -196,20 +191,27 @@ class Orchestrator:
 
     def _run_pipeline(self, text: str, stt_latency: float) -> bool:
 
-        # ── Stage 2: Intent Detection (0ms — moved first) ────────
+        # ── Stage 2: Intent Detection ─────────────────────────────
+        t0 = time.time()
         intent, matched = self.intent_detector.classify_with_confidence(text)
+        t_intent = time.time() - t0
         if intent != Intent.CHAT:
             print(f"[Intent] {intent.name}  (matched: '{matched}')")
+        print(f"[TIMER] Intent detection: {t_intent:.3f}s")
 
-        # ── Stage 1: Memory Context (CHAT path only) ─────────────
+        # ── Stage 1: Memory Context (CHAT path only) ──────────────
         memory_context = ""
+        t_mem = 0.0
         if intent == Intent.CHAT:
             print("[Orchestrator] Stage 1: memory context building (CHAT path)")
+            t0 = time.time()
             memory_context = self.memory.build_context(
-                session_id=None,
+                session_id=self.session_id,
                 recent_turns=self.memory_config["context_turns"],
                 fact_limit=self.memory_config["fact_limit"],
             )
+            t_mem = time.time() - t0
+            print(f"[TIMER] Memory build: {t_mem:.3f}s | chars={len(memory_context)}")
 
         # ── Stage 3: Tool Execution ───────────────────────────────
         if intent != Intent.CHAT:
@@ -218,7 +220,6 @@ class Orchestrator:
                 print(f"\n[TARA] {tool_result.formatted_output}")
                 print(f"       Tool: {tool_result.tool_name} | latency: {tool_result.latency:.3f}s")
                 
-                # Protect Tool TTS
                 try:
                     tts_result = self.tts.speak(tool_result.formatted_output)
                     self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
@@ -233,12 +234,12 @@ class Orchestrator:
                     self.stats["ttfs_tool"].append(stt_latency + tool_result.latency)
                     self.stats["tool_latency"].append(tool_result.latency)
 
-                # Protect Tool SQLite Persistence
                 try:
                     self.memory.save_turn(
                         session_id=self.session_id,
                         user_message=text,
                         assistant_response=tool_result.formatted_output,
+                        source="tool",
                     )
                 except Exception as e:
                     error_logger.error(f"Tier 3 Component Crash (Tool SQLite): {str(e)}", exc_info=True)
@@ -248,13 +249,15 @@ class Orchestrator:
                     
                 return True
 
-        # ── Stage 5: LLM Generation (CHAT path only) ─────────────
+        # ── Stage 5: LLM Generation (CHAT path only) ──────────────
         print("[Thinking...]")
+        t0 = time.time()
         response, llm_latency = self.llm.generate(
             text, memory_context=memory_context
         )
+        t_llm_outer = time.time() - t0
         print(f"\n[TARA] {response}")
-        print(f"       LLM latency: {llm_latency:.2f}s")
+        print(f"       LLM latency: {llm_latency:.2f}s | outer: {t_llm_outer:.3f}s")
         self.stats["llm"].append(llm_latency)
 
         # ── Stage 6: Response Delivery ────────────────────────────
@@ -282,6 +285,7 @@ class Orchestrator:
                 session_id=self.session_id,
                 user_message=text,
                 assistant_response=response,
+                source="chat",
             )
         except Exception as e:
             error_logger.error(f"Tier 3 Component Crash (SQLite): {str(e)}", exc_info=True)
@@ -316,7 +320,7 @@ class Orchestrator:
         total_turns  = chat_turns + tool_turns
 
         print("\n" + "=" * 55)
-        print("  WEEK 6 BASELINE PERFORMANCE REPORT")
+        print("  WEEK 7 BASELINE PERFORMANCE REPORT")
         print("=" * 55)
         print(f"  Session duration : {session_mins:.1f} min")
         print(f"  Total turns      : {total_turns}  "

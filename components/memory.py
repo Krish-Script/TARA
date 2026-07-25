@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional, Sequence
-
+MAX_CONTEXT_TOKENS = 600  # approximate ceiling for injected history
 
 def _utc_now_iso() -> str:
     """Return a UTC timestamp in ISO-8601 format."""
@@ -44,6 +44,7 @@ class ConversationTurn:
     timestamp: str
     user_message: str
     assistant_response: str
+    source: str = "chat"
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,6 @@ class UserFact:
 class MemoryStore:
     """
     SQLite memory store for TARA.
-
     Default database file:
         D:\\TARA\\tara_memory.db
     """
@@ -133,14 +133,19 @@ class MemoryStore:
         user_message: str,
         assistant_response: str,
         timestamp: Optional[str] = None,
+        source: str = "chat",
     ) -> int:
         """
         Save one user/assistant exchange and return the inserted row id.
+        source: 'chat' for LLM-generated responses, 'tool' for tool-path responses.
         """
         user_message = (user_message or "").strip()
         assistant_response = (assistant_response or "").strip()
         if not user_message and not assistant_response:
             raise ValueError("Cannot save an empty conversation turn.")
+
+        if source not in ("chat", "tool"):
+            raise ValueError(f"Invalid source tag: {source!r}. Must be 'chat' or 'tool'.")
 
         ts = timestamp or _utc_now_iso()
         turn_index = self.next_turn_index(session_id)
@@ -149,55 +154,93 @@ class MemoryStore:
             cursor = conn.execute(
                 """
                 INSERT INTO conversations (
-                    session_id, turn_index, timestamp, user_message, assistant_response
+                    session_id, turn_index, timestamp,
+                    user_message, assistant_response, source
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (session_id, turn_index, ts, user_message, assistant_response),
+                (session_id, turn_index, ts, user_message, assistant_response, source),
             )
             conn.commit()
-            return int(cursor.lastrowid) # type: ignore
+            return int(cursor.lastrowid)  # type: ignore
 
     def get_recent_turns(
         self,
         session_id: Optional[str] = None,
         limit: int = 6,
+        source_filter: Optional[str] = None,  # None = all, 'chat' = chat only, 'tool' = tool only
     ) -> List[ConversationTurn]:
         """
         Fetch the most recent conversation turns.
-
         If session_id is provided, only that session is queried.
+        If source_filter is provided, only turns matching that source are returned.
         """
         limit = max(1, int(limit))
 
-        query = """
-            SELECT session_id, turn_index, timestamp, user_message, assistant_response
-            FROM conversations
-        """
-        params: Sequence[object]
+        conditions = []
+        params: list[object] = []
 
         if session_id:
-            query += " WHERE session_id = ?"
-            params = (session_id,)
-        else:
-            params = ()
+            conditions.append("session_id = ?")
+            params.append(session_id)
+
+        if source_filter is not None:
+            conditions.append("source = ?")
+            params.append(source_filter)
+
+        query = """
+            SELECT session_id, turn_index, timestamp,
+                user_message, assistant_response, source
+            FROM conversations
+        """
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
 
         query += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
 
         with self._connect() as conn:
-            rows = conn.execute(query, (*params, limit)).fetchall()
+            rows = conn.execute(query, params).fetchall()
 
-        turns = [
+        return [
             ConversationTurn(
                 session_id=row["session_id"],
                 turn_index=int(row["turn_index"]),
                 timestamp=row["timestamp"],
                 user_message=row["user_message"],
                 assistant_response=row["assistant_response"],
+                source=row["source"],
             )
             for row in reversed(rows)
         ]
-        return turns
+
+
+    def get_context_for_llm(self, session_id: Optional[str] = None) -> str:
+        """
+        Return a token-budgeted context string for LLM injection.
+        Only chat-path turns are included — tool responses are excluded.
+        Oldest turns are dropped first when the budget is exceeded.
+        Token count is approximated as word_count * 1.3.
+        """
+        turns = self.get_recent_turns(
+            session_id=session_id,
+            limit=10,
+            source_filter="chat",
+        )
+
+        context_parts: list[str] = []
+        running_tokens = 0.0
+
+        for turn in reversed(turns):  # most recent first, then trim oldest
+            candidate = f"User: {turn.user_message}\nTARA: {turn.assistant_response}\n"
+            token_estimate = len(candidate.split()) * 1.3
+            if running_tokens + token_estimate > MAX_CONTEXT_TOKENS:
+                break
+            context_parts.append(candidate)
+            running_tokens += token_estimate
+
+        context_parts.reverse()  # restore chronological order for LLM
+        return "".join(context_parts)
 
     def clear_session_turns(self, session_id: str) -> int:
         """Delete all turns for a session and return the count removed."""
@@ -277,37 +320,31 @@ class MemoryStore:
             cursor = conn.execute("DELETE FROM user_facts")
             conn.commit()
             return int(cursor.rowcount)
+        
 
     # ------------------------------------------------------------------
     # Prompt-building helpers
     # ------------------------------------------------------------------
-    def build_context(
-        self,
-        session_id: Optional[str] = None,
-        recent_turns: int = 6,
-        fact_limit: int = 10,
-    ) -> str:
+    def build_context(self, session_id=None, recent_turns=6, fact_limit=10):
         """
         Build a prompt-ready memory block.
-
         The returned text is meant to be injected into the LLM context as
         a system/developer-style memory note or as a prefixed context block.
         """
         facts = self.get_facts(limit=fact_limit)
-        turns = self.get_recent_turns(session_id=session_id, limit=recent_turns)
+        turns_context = self.get_context_for_llm(session_id=session_id)
 
-        sections: list[str] = []
+        print(f"[MEMORY DEBUG] facts={len(facts)} | context_chars={len(turns_context)} | context_tokens_est={len(turns_context.split())*1.3:.0f}")
+        print(f"[MEMORY DEBUG] context preview: {turns_context[:200]!r}")
+
+        sections = []
 
         if facts:
             fact_lines = "\n".join(f"- {item.fact}" for item in facts)
             sections.append(f"Known user facts:\n{fact_lines}")
 
-        if turns:
-            convo_lines = []
-            for turn in turns:
-                convo_lines.append(f"User: {turn.user_message}")
-                convo_lines.append(f"TARA: {turn.assistant_response}")
-            sections.append("Recent conversation:\n" + "\n".join(convo_lines))
+        if turns_context:
+            sections.append("Recent conversation:\n" + turns_context)
 
         return "\n\n".join(sections).strip()
 

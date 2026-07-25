@@ -43,7 +43,6 @@ class Intent(Enum):
 class IntentDetector:
 
     def __init__(self):
-        print("DEBUG: The new Intent Detector just loaded!")
         self._patterns = self._build_patterns()
 
     def _build_patterns(self) -> list[tuple[list[str], Intent]]:
@@ -71,6 +70,8 @@ class IntentDetector:
                 [
                     "read my last note",
                     "what was my last note",
+                    "what does my notes say",
+                    "what do my notes say",
                     "read my notes",
                 ],
                 Intent.NOTES_READ,

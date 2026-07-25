@@ -44,6 +44,8 @@ class ToolFormatter:
             Intent.NOTES_READ:   ToolFormatter._format_notes_read,
             Intent.NOTES_LIST:   ToolFormatter._format_notes_list,
             Intent.NOTES_SEARCH: ToolFormatter._format_notes_search,
+            
+            Intent.FILE_LIST: ToolFormatter._format_file_list,
             Intent.FILE_READ: ToolFormatter._format_file_read,
 
             Intent.CALCULATION: ToolFormatter._format_calculation,
@@ -142,6 +144,14 @@ class ToolFormatter:
         term = data.get('term')
         match = data.get('match')
         return f"I found a note about {term}. It says: {match}"
+    
+    @staticmethod
+    def _format_file_list(data: dict) -> str:
+        count = data.get("count", 0)
+        latest_date = data.get("latest_date", "recently")
+        if count == 1:
+            return f"You have one note saved, modified {latest_date}."
+        return f"You have {count} notes saved. The latest one was modified {latest_date}."
     
     @staticmethod
     def _format_file_read(data: dict) -> str:

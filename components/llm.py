@@ -12,7 +12,6 @@ import ollama
 class LanguageModel:
     def __init__(self, config: dict):
         self.config             = config
-        self.conversation_history: list[dict] = []
         self._test_connection()
         self.warm_up()  # Preload the model to reduce first-response latency
 
@@ -42,66 +41,35 @@ class LanguageModel:
     def generate(self, user_message: str, memory_context: str = "") -> tuple[str, float]:
         """
         Send a message to the LLM and get a response.
-        Automatically keeps track of conversation history so
-        the assistant remembers what was said earlier.
-
+        Memory is handled externally via memory_context (SQLite-backed).
         Returns (response_text, latency_seconds).
         """
-        # Add the user's message to memory
-        self.conversation_history.append({
-            "role":    "user",
-            "content": user_message,
-        })
-
-        # Build system prompt — inject memory context if it exists
         system_content = self.config["system_prompt"]
         if memory_context:
             system_content = system_content + "\n\n" + memory_context
 
-        # Build the full message list:
-        #   [system prompt]  ← sets the TARA persona
-        #   [user turn 1]
-        #   [assistant turn 1]
-        #   [user turn 2]     ← current message
-        messages = [{"role": "system", "content": system_content}] + self.conversation_history
+        messages = [
+            {"role": "system", "content": system_content},
+            {"role": "user",   "content": user_message},
+        ]
 
         start = time.time()
 
         response = ollama.chat(
             model=self.config["model"],
             messages=messages,
-            keep_alive=self.config.get("keep_alive", "30m"),
+            keep_alive=self.config.get("keep_alive", "5m"),  # discard KV cache after each call — prevents latency drift
             options={
                 "temperature": self.config.get("temperature", 0.7),
-                "num_ctx":     self.config.get("num_ctx",     2048),
+                "num_ctx":     self.config.get("num_ctx", 2048),
+                "num_predict": self.config.get("num_predict", 80),
             },
         )
 
         latency = time.time() - start
-
-        # Extract the text from the response object
-        assistant_text = response.message.content.strip() # type: ignore
-
-        # Save the assistant's reply to memory
-        self.conversation_history.append({
-            "role":    "assistant",
-            "content": assistant_text,
-        })
-
-        # Trim old history to prevent memory bloat
-        # Each conversation turn = 2 entries (user + assistant)
-        max_entries = self.config.get("max_history", 10) * 2
-        if len(self.conversation_history) > max_entries:
-            self.conversation_history = self.conversation_history[-max_entries:]
-
-        return assistant_text, latency
+        return response.message.content.strip(), latency  # type: ignore
 
     # ── Utility ──────────────────────────────────────────────
-
-    def clear_history(self):
-        """Wipe conversation memory. Call when starting a new topic."""
-        self.conversation_history = []
-        print("[LLM] Conversation history cleared.")
 
     def warm_up(self):
         """

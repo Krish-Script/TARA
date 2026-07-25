@@ -2,12 +2,12 @@ import glob
 from pathlib import Path
 from components.error_manager import ToolExpectedError
 from components.memory import MemoryStore
+from config import MEMORY_CONFIG
 
 class LocalSearchTool:
     def __init__(self, llm):
         self.llm = llm
-        # Instantiate a read-only connection to the existing memory layer
-        self.memory = MemoryStore()
+        self.memory = MemoryStore(MEMORY_CONFIG["db_path"])
         self.notes_dir = Path("data/notes").resolve()
 
     def _search_notes(self, target: str) -> str:

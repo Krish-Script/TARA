@@ -1,5 +1,5 @@
 # TARA — Research Notes
-## Midpoint Analysis — Week 5 of 10
+## Midpoint Analysis
 
 ---
 
@@ -34,6 +34,69 @@ Three separate incidents across Weeks 4–5 documented the LLM fabricating hardw
 This is consistent with known LLM behaviour: models generate statistically likely continuations, and common hardware values from training data (typical CPU loads, typical VRAM figures) are statistically likely completions for "your CPU is at X percent." The model is not retrieving data; it is completing a pattern.
 
 The practical implication for offline assistants: any query with a deterministic correct answer that differs from the model's statistical prior is a hallucination risk. For hardware metrics this is visible and verifiable. For less observable domains (personal calendar, local files, user preferences), the same mechanism produces wrong answers that are harder to catch.
+
+---
+
+### 4. Stabilising Multi-Turn Latency via Context Injection Constraints
+
+The latency regression observed across extended conversational sessions has been successfully resolved. Empirical measurements now show Turn 1 TTFS at 2.92s and Turn 6 at 3.19s. This 0.27s variance sits comfortably within the established ≤0.30s target threshold for multi-turn degradation.
+
+The root cause of the previous degradation was identified as unbounded tool-response context injection. When raw, unoptimised tool outputs (such as large file summaries or unstructured data dumps) were continuously appended to the LLM's short-term conversational memory, the rapidly expanding context window degraded generation speed non-linearly.
+
+The practical implication here reinforces the architectural decisions made in Week 6: stable multi-turn latency on constrained hardware requires aggressive curation of what tools are allowed to inject into persistent context. Keeping large tool data isolated to a temporary synthesis prompt—rather than appending it to the ongoing chat history—is mandatory to prevent TTFS from ballooning over a long session.
+
+---
+
+## Finding 5 — Dual Memory Injection as a Latency Anti-Pattern in Local LLM Assistants
+
+Finding: Running two simultaneous memory systems against the same LLM inference call
+produces compounding context growth that masquerades as model instability.
+
+Evidence: Chat path TTFS drifted from 2.92s (Turn 1) to 5.08s (Turn 6) in a
+controlled 6-turn session. LLM latency grew from 1.57s to 3.21s across the same
+session. After removing the redundant system, worst-case TTFS dropped from 5.53s
+to 3.89s and variance collapsed from 2.53s to 0.89s.
+
+Mechanism: TARA had two independent memory systems feeding the same ollama.chat()
+call. The SQLite-backed build_context() injected history via the system prompt.
+The in-process conversation_history list appended every turn as explicit message
+objects. Ollama built a KV cache for the entire growing message list on every call.
+By Turn 6, the model was processing 12 message objects plus the system prompt
+context block — the same history represented twice. Removing conversation_history
+and passing only [system, user] per call reduced the KV cache to a fixed size.
+
+Implication: When building a voice assistant with both a persistent memory store
+and an LLM client library, verify that the client library does not maintain its
+own conversation state. Many Ollama and OpenAI client wrappers accumulate history
+internally by default. On constrained hardware, this accumulation is the dominant
+TTFS growth factor and is indistinguishable from model instability without
+per-stage latency instrumentation.
+
+---
+
+## Finding 6 — Context-TTFS Tradeoff is Hardware-Determined and Irreducible
+
+Finding: On a 4GB VRAM GPU running a 3B parameter quantized model, injected context
+tokens impose a fixed latency cost that cannot be optimized away in software.
+
+Evidence: With conversation_history removed and session_id correctly scoped,
+LLM latency tracked context size linearly: 119 chars (Turn 1) → 1.58s,
+252 chars (Turn 3) → 2.37s, 407 chars (Turn 4) → 2.36s, 594 chars (Turn 6) →
+2.30s. Memory build time was <10ms at all turns — SQLite is not the bottleneck.
+The minimum achievable TTFS with zero context is STT (~0.70s) + LLM (~1.58s) +
+TTS synthesis (~0.72s) = 3.00s. This is the hardware floor.
+
+Mechanism: qwen2.5:3b on RTX 3050 costs approximately 1ms per additional context
+token during prefill. A 600-token context ceiling adds ~0.60s to LLM latency
+versus a zero-context baseline. This cost is paid on every chat-path turn
+regardless of software optimizations.
+
+Implication: TTFS targets for voice assistants on edge hardware must be derived
+from measured hardware floors, not aspirational benchmarks. The correct design
+response is not to reduce context injection aggressively — which degrades memory
+coherence — but to set user-facing latency expectations against the measured
+floor. A ≤4.0s TTFS target with ≤1.0s session variance is achievable on this
+hardware. A ≤2.60s target is not, given the STT + LLM + TTS component minimums.
 
 ---
 

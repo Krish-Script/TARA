@@ -8,8 +8,74 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ---
 
 ## [Unreleased]
- 
-### Planned — Week 7 (coming soon)
+
+### Planned — Week 7 (in progress)
+- T2: Compound tool chains (keyword-triggered multi-step execution)
+- T4: Adversarial benchmark extension to 47 queries
+- T5: Research findings formalization
+- T6: Demo script preparation
+- T7: Session-end summary
+
+---
+
+## [0.21.0] - 2026-07-25
+
+### Fixed
+- **Cross-session context injection** — `build_context()` was called with
+  `session_id=None` throughout the pipeline, causing `get_recent_turns()` to
+  fetch turns from all previous sessions into every new session's LLM context.
+  Fixed by passing `session_id=self.session_id` in orchestrator.py Stage 1.
+- **Dual memory injection** — `llm.py` maintained a `conversation_history` list
+  that accumulated every turn as explicit message objects passed to
+  `ollama.chat()`, while `build_context()` simultaneously injected the same
+  history via the system prompt. Ollama built a growing KV cache for the entire
+  message list on every call, causing LLM latency to drift from 1.57s to 3.21s
+  across a 6-turn session. Removed `conversation_history` entirely; `generate()`
+  now passes `[system, user]` only. Memory is handled exclusively by
+  SQLite-backed `build_context()`.
+- **Missing `source` column** — `conversations` table had no `source` column,
+  making tool-response filtering impossible. Added via migration
+  (`ALTER TABLE ADD COLUMN source TEXT NOT NULL DEFAULT 'chat'`), backfilling
+  all existing rows as `'chat'`.
+- **Tool responses injected as chat context** — `save_turn()` had no `source`
+  parameter; all turns were written identically regardless of path. Tool-path
+  responses (verbose file summaries, system reports) were being retrieved and
+  injected into subsequent LLM chat contexts. Fixed by tagging Stage 3 writes
+  as `source='tool'` and Stage 7 writes as `source='chat'`, then filtering on
+  retrieval.
+
+### Added
+- `conversations.source` column — `TEXT NOT NULL DEFAULT 'chat'`, distinguishes
+  `'chat'` (LLM-generated) from `'tool'` (tool-path) turns.
+- `save_turn()` `source` parameter — accepts `'chat'` or `'tool'`, raises
+  `ValueError` on invalid values.
+- `get_recent_turns()` `source_filter` parameter — optional filter on source
+  column; `None` returns all turns.
+- `get_context_for_llm()` — new method in `MemoryStore`. Token-budgeted
+  (600-token ceiling via word count × 1.3 proxy), source-filtered (`chat` only),
+  session-scoped. Oldest turns dropped first when budget is exceeded.
+
+### Changed
+- `build_context()` — replaced raw `get_recent_turns()` call with
+  `get_context_for_llm()`. Conversation history section now source-filtered and
+  token-budgeted automatically.
+- `generate()` — removed `conversation_history` accumulation. Passes
+  `[system, user]` per call only. `keep_alive` restored to config-driven value
+  (default `"5m"`) after `keep_alive=0` was tested and rejected (unloads model
+  from VRAM after every call, adding 4–6s reload overhead per turn).
+- `orchestrator.py` Stage 3 `save_turn()` — added `source="tool"`.
+- `orchestrator.py` Stage 7 `save_turn()` — added `source="chat"`.
+
+### Removed
+- `llm.py` `conversation_history` attribute and all references.
+- `llm.py` `clear_history()` method — no longer applicable.
+
+### Performance
+- Chat TTFS upper bound: 5.53s → 3.89s
+- Chat TTFS variance (controlled 6-turn session): 2.53s → 0.89s
+- Hardware floor confirmed: minimum achievable TTFS = STT (~0.70s) +
+  LLM (~1.58s) + TTS synthesis (~0.72s) = **3.00s** with zero context.
+- Revised TTFS target: ≤4.0s upper bound, ≤1.0s session variance.
 
 ---
 
@@ -49,7 +115,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Pipeline Latency:** Intent routing latency measured at 0.00ms. Non-LLM tool path TTFS proxy holding at 1.37s. 
 - **Model Evaluation (qwen2.5:3b):** 
   - Category A (Format): 5/5
-  - Category A2 (Adversarial): 4/5
+  - Category A2 (Adversarial): 4/5 — capability documentation, not a target
   - Category B (Context): 5/5
   - Category C (Words): Avg 24.2 (Target ≤35) / Max 35 (Target ≤60)
   - Avg Chat Latency: 2.08s
@@ -590,6 +656,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.18.0 | Calculator Tool + safe_eval + false positive fixes | Week 6 | ✅ Released |
 | 0.19.0 | Eval Harness & Benchmark Expansion | Week 6 | ✅ Released |
 | 0.20.0 | Local Information Retrieval Tool | Week 6 | ✅ Released |
+| 0.21.0 | TTFS regression fix — dual memory + cross-session bugs | Week 7 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
