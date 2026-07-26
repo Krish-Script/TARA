@@ -3,7 +3,9 @@
 
 **Sprint duration:** Week 7 of 10
 
-**Status:** 🔄️ In progress (1/7 tasks completed)
+**Status:** 🔄️ In progress (3/7 tasks completed)
+
+---
 
 ## T1 Status: Complete (revised scope)
 
@@ -39,6 +41,7 @@ unloads the model from VRAM after every inference call, adding 4-6 seconds
 of reload overhead per turn. The correct setting is keep_alive="5m" with
 the message list fixed at constant size.
 ```
+---
 
 ### Before / After TTFS (controlled 6-turn sequence)
 
@@ -49,14 +52,14 @@ the message list fixed at constant size.
 | 4    | 4.62s                | 3.89s         |
 | 6    | 5.08s                | 3.79s         |
 | Variance | 2.53s            | 0.89s         |
+---
 
 ### Revised TTFS Target
 
-The sprint plan target of ≤2.60s is not achievable on this hardware.
-Minimum TTFS = STT floor (~0.70s) + LLM floor (~1.58s) + TTS floor (~0.72s)
+- The sprint plan target of ≤2.60s is not achievable on this hardware.
+- Minimum TTFS = STT floor (~0.70s) + LLM floor (~1.58s) + TTS floor (~0.72s)
 = 3.00s with zero context injection.
-
-Revised target: ≤4.0s upper bound, ≤1.0s variance across a 6-turn session.
+- Revised target: ≤4.0s upper bound, ≤1.0s variance across a 6-turn session.
 Both conditions met as of this fix.
 
 ### Files Changed
@@ -81,25 +84,100 @@ Both conditions met as of this fix.
 - Stage 3 save_turn(): added source="tool"
 - Stage 7 save_turn(): added source="chat"
 
-## T2–T7 Status: Not started
+---
 
-Week carried forward: T2 (compound tool chains), T3 (context window manager
-subsumed into T1 fix), T4 (adversarial benchmark extension), T5 (research
-findings), T6 (demo script), T7 (session summary).
+## T2 Status: Complete
 
-## Week 7 Baseline Table (partial — T1 completed only)
+### Compound Chains Implemented
 
-| Metric                        | Week 6     | Week 7     |
-|-------------------------------|------------|------------|
-| STT avg                       | ~0.72s     | ~0.70s     |
-| LLM avg (chat path)           | 1.04–2.82s | 1.58–2.37s |
-| TTFS (chat path)              | 2.90–4.27s | 3.00–3.89s |
-| TTFS (tool path, no LLM)      | 1.37–1.41s | 1.28–1.37s |
-| Chat TTFS upper bound         | 5.53s      | 3.89s      |
-| Chat TTFS variance (6 turns)  | 2.53s      | 0.89s      |
-| Context tokens injected avg   | unknown    | ~215 est.  |
-| Intent accuracy               | 37/37      | 37/37      |
-| Compound chains supported     | 0          | 0          |
+Three compound chains registered in components/compound_router.py:
+
+- Chain 1 — system_status_snapshot
+Trigger phrases: "how is my system doing", "full system report",
+"give me a full system", "system status report"
+Execution: single SYSTEM_QUERY dispatch with query="system status" → _get_all()
+Synthesis: template (no LLM)
+Result: "CPU is at X percent, RAM is Y of Z gigabytes, and disk is A percent full."
+Measured TTFS: 1.85s
+
+- Chain 2 — note_with_system_data
+Trigger phrases: "take a note with my current", "note my current",
+"record my current", "take a note with my"
+Execution: SYSTEM_QUERY (metric detected from input) → NOTES_CREATE
+Synthesis: template (no LLM)
+Result: "Noted. [metric value]."
+Measured TTFS: 1.45s
+
+- Chain 3 — timestamped_note
+Trigger phrases: "timestamped note", "note the time", "note with timestamp"
+Execution: TIME_QUERY → NOTES_CREATE with timestamp prepended
+Synthesis: template (no LLM)
+Result: "Noted at [time]."
+Measured TTFS: 1.59s
+
+### Pipeline Integration
+
+- CompoundRouter inserted at Stage 1.5 — before IntentDetector (Stage 2).
+- Compound turns counted as tool-path turns in stats (ttfs_tool, tool_latency).
+- Compound turns persisted to SQLite with source='tool'.
+
+### Design Decisions
+
+- Chain 4 (search then summarize) from sprint plan dropped — LOCAL_SEARCH already implements search + LLM synthesis as a single-intent tool. Duplicate implementation adds complexity with no new capability.
+
+- CompoundRouter passes self.tool_registry — all compound chains use existing registered tools. No new tool instances, no new dependencies.
+
+- Trigger phrase specificity enforced: compound patterns require multi-word phrases with specific nouns. "how is my system doing" requires "system" specifically — will not match "how is my note-taking going".
+
+### Bugs Found and Fixed
+
+- Double period in Chain 3 output: time tool formatted output already ends with a period. Fixed by rstrip('.') before template insertion.
+
+- Compound turns not counted in stats: ttfs_tool and tool_latency appends were missing from Stage 1.5 TTS block. Fixed.
+
+---
+
+## T3 Status: Subsumed into T1
+
+The 600-token context ceiling and source filtering were implemented as part of T1 in get_context_for_llm().
+
+The 20-turn summarization trigger was dropped — hardware floor analysis showed context-TTFS variance is within the 0.89s target without it.
+
+Adding LLM-generated summaries would consume inference budget on memory management rather than user responses with no measurable TTFS benefit at current session lengths.
+
+---
+
+### Updated Week 7 Baseline Table
+
+| Metric                            | Week 6     | Week 7     |
+|-----------------------------------|------------|------------|
+| STT avg                           | ~0.72s     | ~0.73s     |
+| LLM avg (chat path)               | 1.04–2.82s | 1.58–2.37s |
+| TTFS (chat path)                  | 2.90–4.27s | 3.00–3.89s |
+| TTFS (tool path, no LLM)          | 1.37–1.41s | 1.28–1.37s |
+| TTFS (compound — no LLM)          | —          | 1.45–1.85s |
+| Chat TTFS upper bound             | 5.53s      | 3.89s      |
+| Chat TTFS variance (6 turns)      | 2.53s      | 0.89s      |
+| Intent accuracy                   | 37/37      | 37/37      |
+| Compound chains supported         | 0          | 3          |
+
+---
+
+## Hours Spent (T1 + T2)
+
+- T1 estimated: 2.0h | Actual: ~3.5h
+- T2 estimated: 2.5h | Actual: ~1.5h
+- Combined: 5.0h estimated | ~5.0h actual
+
+## T3–T7 Status: Not started
+
+### Week carried forward: 
+
+- T4 (adversarial benchmark extension)
+- T5 (research findings)
+- T6 (demo script)
+- T7 (session summary).
+
 
 ## Hours Spent (T1 only)
 ```text

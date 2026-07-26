@@ -45,6 +45,7 @@ from components.error_manager import error_logger
 from components.memory import MemoryStore
 from components.intent import Intent, IntentDetector
 from components.tools.registry import ToolRegistry
+from components.compound_router import CompoundRouter
 
 
 class Orchestrator:
@@ -77,6 +78,8 @@ class Orchestrator:
         self.memory_config = memory_config
         self.intent_detector = IntentDetector()
         self.tool_registry   = ToolRegistry(llm=self.llm)
+
+        self.compound_router = CompoundRouter(self.tool_registry)
 
         self.stats = {
             "stt":           [],
@@ -190,6 +193,52 @@ class Orchestrator:
     # ── Pipeline ─────────────────────────────────────────────
 
     def _run_pipeline(self, text: str, stt_latency: float) -> bool:
+
+        # ── Stage 1.5: Compound Router ────────────────────────────────
+        # Runs before intent detection. More specific patterns take
+        # priority over single-intent routing. If no compound match,
+        # falls through to normal pipeline.
+        compound_chain = self.compound_router.match(text)
+        if compound_chain:
+            t0 = time.time()
+            compound_result = self.compound_router.execute(compound_chain, text)
+            t_compound = time.time() - t0
+
+            print(f"\n[TARA] {compound_result.formatted_output}")
+            print(
+                f"       Compound: {compound_result.chain_name} "
+                f"| latency: {t_compound:.3f}s"
+            )
+
+            try:
+                tts_result = self.tts.speak(compound_result.formatted_output)
+                self.stats["tts_synthesis"].append(tts_result.synthesis_latency)
+                self.stats["tts"].append(tts_result.total_latency)
+                ttfs = stt_latency + tts_result.synthesis_latency
+                self.stats["ttfs_tool"].append(ttfs)
+                self.stats["tool_latency"].append(compound_result.latency)
+                print(f"       ── TTFS: {ttfs:.2f}s ──")
+            except Exception as e:
+                error_logger.error(
+                    f"Tier 3 Component Crash (Compound TTS): {e}", exc_info=True
+                )
+                print("[TTS FAULT - AUDIO FAILED]")
+
+            try:
+                self.memory.save_turn(
+                    session_id=self.session_id,
+                    user_message=text,
+                    assistant_response=compound_result.formatted_output,
+                    source="tool",
+                )
+            except Exception as e:
+                error_logger.error(
+                    f"Tier 3 Component Crash (Compound SQLite): {e}", exc_info=True
+                )
+                with open("logs/memory_fallback.txt", "a", encoding="utf-8") as f:
+                    f.write(f"User: {text}\nTARA: {compound_result.formatted_output}\n---\n")
+
+            return True
 
         # ── Stage 2: Intent Detection ─────────────────────────────
         t0 = time.time()

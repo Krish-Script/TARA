@@ -10,11 +10,40 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 7 (in progress)
-- T2: Compound tool chains (keyword-triggered multi-step execution)
 - T4: Adversarial benchmark extension to 47 queries
 - T5: Research findings formalization
 - T6: Demo script preparation
 - T7: Session-end summary
+
+---
+
+## [0.22.0] - 2026-07-26
+
+### Added
+- `components/compound_router.py` — CompoundRouter class implementing keyword-triggered multi-step tool chain execution.
+  - `CompoundResult` dataclass: standard return type for all chain executions.
+  - `match()`: pattern check against registered compound phrases, returns chain name or None. Runs in <1ms.
+  - `execute()`: dispatches to named chain, always returns CompoundResult, never raises.
+  - Chain 1 `system_status_snapshot`: single SYSTEM_QUERY dispatch → template synthesis. TTFS 1.85s.
+  - Chain 2 `note_with_system_data`: keyword-detected metric → SYSTEM_QUERY → NOTES_CREATE. TTFS 1.45s.
+  - Chain 3 `timestamped_note`: TIME_QUERY → NOTES_CREATE with timestamp prepended. TTFS 1.59s.
+- `orchestrator.py` Stage 1.5: CompoundRouter check before IntentDetector. Compound match bypasses Stages 2–5. Falls through to normal routing on no match.
+- Compound turns tracked in `ttfs_tool` and `tool_latency` stats.
+- Compound turns persisted to SQLite with `source='tool'`.
+
+### Changed
+- `orchestrator.__init__()`: CompoundRouter instantiated after ToolRegistry.
+
+### Fixed
+- Double period in timestamped note output: time tool formatted output
+  stripped of trailing period before template insertion.
+- Compound turns missing from session stats: `ttfs_tool` and `tool_latency`
+  appends added to Stage 1.5 TTS block.
+
+### Performance
+- Compound chain TTFS: 1.45s–1.85s (all three chains under 2.0s)
+- All compound chains use template synthesis — zero LLM calls for
+  chains 1 and 3, zero LLM calls for chain 2 synthesis step.
 
 ---
 
@@ -657,6 +686,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.19.0 | Eval Harness & Benchmark Expansion | Week 6 | ✅ Released |
 | 0.20.0 | Local Information Retrieval Tool | Week 6 | ✅ Released |
 | 0.21.0 | TTFS regression fix — dual memory + cross-session bugs | Week 7 | ✅ Released |
+| 0.22.0 | Compound tool chains — 3 chains, Stage 1.5 router | Week 7 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
