@@ -80,6 +80,14 @@ class ToolFormatter:
                 f"{data['ram_total_gb']:.1f} gigabytes used"
             )
 
+        # Disk
+        if "disk_used_gb" in data and "disk_total_gb" in data:
+            parts.append(
+                f"disk is {data['disk_used_gb']:.1f} of "
+                f"{data['disk_total_gb']:.1f} gigabytes used "
+                f"({data['disk_percent']:.0f} percent full)"
+            )
+
         # GPU / VRAM
         if "vram_used_gb" in data and "vram_total_gb" in data:
             parts.append(
@@ -93,10 +101,16 @@ class ToolFormatter:
             plugged = "and charging" if data.get("battery_plugged") else "and discharging"
             parts.append(f"battery is at {bp:.0f} percent {plugged}")
 
-        # Temperature
+        # CPU Temperature
         if "cpu_temp_c" in data:
             parts.append(
                 f"Your CPU temperature is {data['cpu_temp_c']} degrees Celsius"
+            )
+
+        # GPU Temperature
+        if "gpu_temp_c" in data:
+            parts.append(
+                f"GPU temperature is {data['gpu_temp_c']} degrees Celsius"
             )
 
         # Uptime

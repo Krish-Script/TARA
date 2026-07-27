@@ -72,7 +72,7 @@ INTENT_TEST_CASES = [
     ("List files in my documents.",       Intent.FILE_LIST,     "file — list"),
 
     # ── Local search ─────────────────────────────────────────
-    ("Do you know anything about chess?", Intent.LOCAL_SEARCH,  "search — local"),
+    ("Do you know anything about my chess games?", Intent.LOCAL_SEARCH, "search — local"),
     ("What do you know about my flight?", Intent.LOCAL_SEARCH,  "search — local"),
 
     # ── Edge cases — false positive detection ────────────────
@@ -89,6 +89,13 @@ INTENT_TEST_CASES = [
     ("Remember to buy milk.",          Intent.NOTES_CREATE, "notes — not memory"),
     ("What's the weather like today?", Intent.CHAT, "edge — what's ambiguous"),
     ("What do you know about Einstein?",  Intent.CHAT, "edge — search false pos"),
+
+    # ── Compound boundary — must NOT trigger CompoundRouter ──────
+    # These reach IntentDetector normally and must route correctly.
+    ("Take a note: buy milk",           Intent.NOTES_CREATE,  "compound neg — note no system data"),
+    ("What's my CPU right now?",        Intent.SYSTEM_QUERY,  "compound neg — single metric not compound"),
+    ("How is quantum computing done?",  Intent.CHAT,          "compound neg — how is not system"),
+    ("List my notes",                   Intent.NOTES_LIST,    "compound neg — list not search chain"),
 ]
 
 # ── Tool pipeline tests ──────────────────────────────────────
@@ -103,6 +110,24 @@ TOOL_TEST_CASES = [
     (Intent.SYSTEM_QUERY, "What's the GPU temperature?","temp tool",   "gpu_temp_c"),
 ]
 
+# ── Compound router tests ────────────────────────────────────
+# Format: (query, expected_chain_or_none, description)
+# expected_chain_or_none = None means CompoundRouter should NOT match.
+COMPOUND_TEST_CASES = [
+    # Five that SHOULD match compound patterns
+    ("How is my system doing?",              "system_status_snapshot",  "compound pos — system status"),
+    ("How's my system doing?",               "system_status_snapshot",  "compound pos — system status contraction"),
+    ("Give me a full system report",         "system_status_snapshot",  "compound pos — full report"),
+    ("Take a note with my current CPU usage","note_with_system_data",   "compound pos — note with data"),
+    ("Note the time right now",              "timestamped_note",        "compound pos — timestamped note"),
+
+    # Five that should NOT match compound patterns
+    ("Take a note: buy milk",               None, "compound neg — plain note"),
+    ("What's my CPU right now?",            None, "compound neg — single metric"),
+    ("How is quantum computing done?",      None, "compound neg — how is general"),
+    ("List my notes",                       None, "compound neg — list intent"),
+    ("What do you know about Einstein?",    None, "compound neg — search false pos"),
+]
 
 # ── Helpers ──────────────────────────────────────────────────
 
@@ -206,6 +231,53 @@ def run_tool_tests(registry: ToolRegistry) -> tuple[int, int]:
 
     return passes, total
 
+# ── Section 4: Compound Router ────────────────────────────────
+
+def run_compound_tests(router) -> tuple[int, int]:
+    """
+    Test CompoundRouter.match() for correct positive and negative routing.
+    Returns (passes, total).
+    """
+    print("\n" + "=" * 55)
+    print("  SECTION 4 — Compound Router Boundary Tests")
+    print("=" * 55)
+
+    passes = 0
+    false_positives: list[str] = []
+    false_negatives: list[str] = []
+
+    for query, expected_chain, description in COMPOUND_TEST_CASES:
+        actual_chain = router.match(query)
+
+        if actual_chain == expected_chain:
+            passes += 1
+            result_str = actual_chain if actual_chain else "no match"
+            _pass(f"{query:42s}  → {result_str}")
+        else:
+            expected_str = expected_chain if expected_chain else "no match"
+            actual_str   = actual_chain   if actual_chain   else "no match"
+            _fail(f"{query:42s}  got '{actual_str}', expected '{expected_str}'")
+            if expected_chain is None and actual_chain is not None:
+                false_positives.append(f"'{query}' → {actual_chain} (should be no match)")
+            elif expected_chain is not None and actual_chain is None:
+                false_negatives.append(f"'{query}' → no match (should be {expected_chain})")
+
+    total = len(COMPOUND_TEST_CASES)
+    _sep()
+    print(f"  Score: {passes}/{total}  ({passes/total*100:.1f}%)")
+
+    if false_positives:
+        print(f"\n  False positives ({len(false_positives)}) — compound router too broad:")
+        for fp in false_positives:
+            print(f"    → {fp}")
+    if false_negatives:
+        print(f"\n  False negatives ({len(false_negatives)}) — compound router missed:")
+        for fn in false_negatives:
+            print(f"    → {fn}")
+    if not false_positives and not false_negatives:
+        print("  No routing errors ✅")
+
+    return passes, total
 
 # ── Section 3: Latency Benchmark ─────────────────────────────
 
@@ -278,36 +350,47 @@ def run_latency_tests(
 # ── Summary ───────────────────────────────────────────────────
 
 def print_summary(
-    intent_passes: int,
-    intent_total:  int,
-    tool_passes:   int,
-    tool_total:    int,
-    false_positives: list[str],
-    latency: dict,
+    intent_passes:    int,
+    intent_total:     int,
+    tool_passes:      int,
+    tool_total:       int,
+    compound_passes:  int,
+    compound_total:   int,
+    false_positives:  list[str],
+    latency:          dict,
 ):
     print("\n" + "=" * 55)
-    print("  WEEK 4 BENCHMARK SUMMARY")
+    print("  WEEK 7 BENCHMARK SUMMARY")
     print("=" * 55)
 
-    intent_pct = intent_passes / intent_total * 100
-    tool_pct   = tool_passes   / tool_total   * 100
+    intent_pct   = intent_passes   / intent_total   * 100
+    tool_pct     = tool_passes     / tool_total     * 100
+    compound_pct = compound_passes / compound_total * 100
+
+    total_passes = intent_passes + tool_passes + compound_passes
+    total_cases  = intent_total  + tool_total  + compound_total
 
     print(f"\n  Intent accuracy  : {intent_passes}/{intent_total}  ({intent_pct:.1f}%)")
     print(f"  Tool success     : {tool_passes}/{tool_total}  ({tool_pct:.1f}%)")
+    print(f"  Compound routing : {compound_passes}/{compound_total}  ({compound_pct:.1f}%)")
+    print(f"  ─────────────────────────────────────────")
+    print(f"  Total            : {total_passes}/{total_cases}  ({total_passes/total_cases*100:.1f}%)")
     print(f"  False positives  : {len(false_positives)}")
     print(f"  Intent latency   : {latency['intent_avg_ms']:.2f}ms")
     print(f"  TTFS estimate    : {latency['ttfs_proxy']:.2f}s")
 
     print()
-    if intent_pct == 100 and tool_pct == 100 and not false_positives:
-        print("  ✅ All tests passed. Intent router and tool layers are solid.")
-    elif false_positives:
-        print("  ⚠️  False positives found — fix intent.py patterns.")
-        print("  Remove bare trigger words; require specific phrases.")
-    elif intent_pct < 90:
-        print("  ⚠️  Intent accuracy below 90% — review pattern list.")
-    elif tool_pct < 100:
-        print("  ⚠️  Tool failures detected — check system_monitor.py error output above.")
+    if intent_pct == 100 and tool_pct == 100 and compound_pct == 100:
+        print("  ✅ All tests passed. Pipeline routing is solid.")
+    else:
+        if compound_pct < 100:
+            print("  ⚠️  Compound routing errors — review compound_router.py patterns.")
+        if false_positives:
+            print("  ⚠️  False positives — fix intent.py patterns.")
+        if intent_pct < 90:
+            print("  ⚠️  Intent accuracy below 90% — review pattern list.")
+        if tool_pct < 100:
+            print("  ⚠️  Tool failures — check tool output above.")
 
     print("=" * 55 + "\n")
 
@@ -323,14 +406,20 @@ if __name__ == "__main__":
     detector = IntentDetector()
     registry = ToolRegistry()
 
+    from components.compound_router import CompoundRouter
+    router = CompoundRouter(registry)
+
     print("  Ready.\n")
 
-    intent_passes, intent_total, false_positives = run_intent_tests(detector)
-    tool_passes,   tool_total                    = run_tool_tests(registry)
-    latency                                      = run_latency_tests(detector, registry)
+    intent_passes,   intent_total,   false_positives = run_intent_tests(detector)
+    tool_passes,     tool_total                      = run_tool_tests(registry)
+    compound_passes, compound_total                  = run_compound_tests(router)
+    latency                                          = run_latency_tests(detector, registry)
 
     print_summary(
-        intent_passes, intent_total,
-        tool_passes, tool_total,
-        false_positives, latency
+        intent_passes,   intent_total,
+        tool_passes,     tool_total,
+        compound_passes, compound_total,
+        false_positives,
+        latency,
     )

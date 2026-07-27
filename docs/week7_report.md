@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 7 of 10
 
-**Status:** 🔄️ In progress (3/7 tasks completed)
+**Status:** 🔄️ In progress (4/7 tasks completed)
 
 ---
 
@@ -147,6 +147,42 @@ Adding LLM-generated summaries would consume inference budget on memory manageme
 
 ---
 
+## T4 Status: Complete
+
+### Benchmark Extended to 60 Queries
+
+- Section 1 — Intent Classification: 43/43 (100.0%)
+- Section 2 — Tool Pipeline: 7/7 (100.0%)
+- Section 4 — Compound Router Boundary Tests: 10/10 (100.0%)
+- Total: 60/60 (100.0%) | False positives: 0
+
+### Changes Made
+
+Added 4 intent boundary cases (compound negatives routed through IntentDetector):
+- "Take a note: buy milk" → NOTES_CREATE
+- "What's my CPU right now?" → SYSTEM_QUERY
+- "How is quantum computing done?" → CHAT
+- "List my notes" → NOTES_LIST
+
+Added Section 4 — Compound Router Boundary Tests (10 cases):
+- 5 positive: queries that must match a compound chain
+- 5 negative: queries that must fall through to single-intent routing
+
+
+Fixed 1 test case bug:
+
+- "Do you know anything about chess?" was testing a non-possessive query against LOCAL_SEARCH — which correctly requires possessive phrasing. Corrected to "Do you know anything about my chess games?" to match the intentional pattern design.
+
+Fixed 2 formatter bugs in _format_system():
+- Disk formatter missing: raw_output contained disk_used_gb and disk_total_gb but no matching formatter block existed. Tool was returning "I couldn't retrieve system information." despite valid data.
+- GPU temperature formatter missing: same failure mode for gpu_temp_c. Both blocks added to ToolFormatter._format_system().
+
+
+Updated print_summary() header from "WEEK 4" to "WEEK 7".  
+Updated print_summary() signature and output to include compound results.
+
+---
+
 ### Updated Week 7 Baseline Table
 
 | Metric                            | Week 6     | Week 7     |
@@ -163,17 +199,17 @@ Adding LLM-generated summaries would consume inference budget on memory manageme
 
 ---
 
-## Hours Spent (T1 + T2)
+## Hours Spent (T1–T4)
 
-- T1 estimated: 2.0h | Actual: ~3.5h
+- T1 + T3 estimated: 2.0h | Actual: ~3.5h
 - T2 estimated: 2.5h | Actual: ~1.5h
-- Combined: 5.0h estimated | ~5.0h actual
+- T4 estimated: 1.0h | Actual: ~0.5h
+- Combined: 5.5h estimated | ~5.5h actual
 
-## T3–T7 Status: Not started
+## T5–T7 Status: Not started
 
 ### Week carried forward: 
 
-- T4 (adversarial benchmark extension)
 - T5 (research findings)
 - T6 (demo script)
 - T7 (session summary).

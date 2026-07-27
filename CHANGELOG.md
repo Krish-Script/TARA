@@ -10,10 +10,39 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Planned — Week 7 (in progress)
-- T4: Adversarial benchmark extension to 47 queries
 - T5: Research findings formalization
 - T6: Demo script preparation
 - T7: Session-end summary
+
+---
+
+## [0.23.0] - 2026-07-27
+
+### Fixed
+- `ToolFormatter._format_system()` missing disk formatter block —
+  disk queries returned "I couldn't retrieve system information."
+  despite valid raw_output. Added disk_used_gb / disk_total_gb /
+  disk_percent formatter.
+- `ToolFormatter._format_system()` missing GPU temperature formatter
+  block — gpu_temp_c present in raw_output but not rendered.
+  Added GPU temperature formatter.
+- `tests/test_benchmark.py` test case bug — "Do you know anything
+  about chess?" was asserting LOCAL_SEARCH but the pattern correctly
+  requires possessive phrasing. Corrected to
+  "Do you know anything about my chess games?"
+
+### Added
+- `tests/test_benchmark.py` Section 4 — Compound Router Boundary Tests.
+  10 cases: 5 positive (must match compound chain), 5 negative
+  (must fall through to single-intent routing).
+- `tests/test_benchmark.py` 4 new intent boundary cases covering
+  compound-adjacent single-intent queries.
+- `print_summary()` updated to include compound routing score and
+  total across all three sections.
+
+### Changed
+- Benchmark header updated from "WEEK 4" to "WEEK 7".
+- Total benchmark suite: 37 → 60 queries at 100% accuracy.
 
 ---
 
@@ -687,6 +716,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.20.0 | Local Information Retrieval Tool | Week 6 | ✅ Released |
 | 0.21.0 | TTFS regression fix — dual memory + cross-session bugs | Week 7 | ✅ Released |
 | 0.22.0 | Compound tool chains — 3 chains, Stage 1.5 router | Week 7 | ✅ Released |
+| 0.23.0 | Benchmark extension — 60 queries, compound router tests, formatter fixes | Week 7 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
