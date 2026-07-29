@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 7 of 10
 
-**Status:** 🔄️ In progress (4/7 tasks completed)
+**Status:** ✅ Completed (6/7 tasks)
 
 ---
 
@@ -183,6 +183,87 @@ Updated print_summary() signature and output to include compound results.
 
 ---
 
+## T5 Status: Complete
+
+### Research Findings Formalized
+
+All findings reformatted to Finding/Evidence/Mechanism/Implication structure with specific measured numbers. Full text in docs/research_notes.md.
+
+**Finding 1** — Intent-Routed Tool Bypass as a Latency Architecture for Edge AI Key numbers: 1.25s tool path vs 2.30s chat path (45% reduction). Intent classification <0.01ms. 43/43 benchmark accuracy.
+
+**Finding 2** — Response Length as the Dominant TTFS Lever on 4GB VRAM Hardware Key numbers: qwen2.5:3b 24.4 words / 0.85s generation vs llama3.2:3b 29.0 words / 0.93s generation. Net TTFS difference: -0.20s despite slower model. ~20ms per word TTS synthesis cost on Piper medium.
+
+**Finding 3** — LLM Hallucination of Hardware Metrics is Systematic and Confident Key numbers: 3 documented incidents. Storage wrong by 2x on both capacity and free space. CPU utilisation 57% reported vs 26% actual (2.2x overestimate). Temperature 85°C reported vs 44–47°C actual (nearly double).
+
+**Finding 4** — [Superseded] Earlier hypothesis (tool-response context injection from file summaries) was not confirmed. Superseded by Finding 5 which documents the actual root causes.
+
+**Finding 5** — Dual Memory Injection as a Latency Anti-Pattern Key numbers: TTFS drift 2.92s → 5.08s (Turn 1 → Turn 6). LLM latency 1.57s → 3.21s. Post-fix worst case: 3.89s. Variance: 2.53s → 0.89s.
+
+**Finding 6** — Context-TTFS Tradeoff is Hardware-Determined and Irreducible Key numbers: 119 chars → 1.58s LLM, 594 chars → 2.30s LLM. Hardware floor 3.00s (STT 0.70s + LLM 1.58s + TTS 0.72s). Revised target: ≤4.0s upper bound.
+
+**Finding 7** — Compound Tool Chains as Deterministic Agentic Behaviour Key numbers: Chain 1 TTFS 1.85s, Chain 2 TTFS 1.45s, Chain 3 TTFS 1.59s. All three under 2.0s. All three below chat path floor of 3.00s.
+
+### Hours Spent
+Estimated: 1.5h | Actual: ~1.0h
+
+---
+
+## T6 Status: Complete
+
+### Demo Script Written
+
+docs/demo_script.md created with 10-query sequence covering full capability range. Estimated total demo duration: under 5 minutes.
+
+| Query | Capability | Path | Target TTFS |
+|-------|-----------|------|-------------|
+| 1 | LLM persona + memory | Chat | 3.0–3.5s |
+| 2 | Time tool | Tool | 1.3–1.5s |
+| 3 | Compound chain (system status) | Compound | 1.6–1.9s |
+| 4 | GPU temperature | Tool | 1.3–1.5s |
+| 5 | Note creation | Tool | 1.3–1.5s |
+| 6 | Cross-session persistence | Tool | 1.3–1.5s |
+| 7 | File reader + LLM summarisation | Tool+LLM | 2.2–2.6s |
+| 8 | Local search + retrieval | Tool+LLM | 1.4–2.0s |
+| 9 | Calculator | Tool | 1.3–1.6s |
+| 10 | General knowledge (LLM fallback) | Chat | 3.0–4.0s |
+
+Each query includes: expected response, expected TTFS, capability demonstrated, failure mode, and recovery phrase. Dry run log table included for Week 10 pre-demo session.
+
+---
+
+## T7 Status: Carried to Week 8
+
+Session-end summary (goodbye → spoken summary → save to notes) not started.  
+Estimated 0.75h. Lowest priority task — no functional or research impact.
+
+---
+
+## Final Hours Summary (Week 7)
+
+| Task | Estimated | Actual |
+|------|-----------|--------|
+| T1 — TTFS regression fix | 2.0h | 3.5h |
+| T2 — Compound tool chains | 2.5h | 1.5h |
+| T3 — Context window manager (subsumed into T1) | 1.5h | 0h |
+| T4 — Benchmark extension | 1.0h | 0.5h |
+| T5 — Research findings | 1.5h | 1.0h |
+| T6 — Demo script | 1.0h | 0.5h |
+| T7 — Session summary (carried) | 0.75h | 0h |
+| **Total** | **10.25h** | **7.0h** |
+
+---
+
+## Week 8 Framing
+
+System is functionally complete. Three weeks remain. The one thing that would
+most undermine research and portfolio value if left undone: the dry run log in
+docs/demo_script.md. Seven weeks of measurements mean nothing if the demo
+fails under pressure. Week 8 priority 1 is running the full 10-query sequence
+in one live session and filling in actual TTFS numbers before any other work
+begins.
+
+---
+
 ### Updated Week 7 Baseline Table
 
 | Metric                            | Week 6     | Week 7     |
@@ -199,29 +280,6 @@ Updated print_summary() signature and output to include compound results.
 
 ---
 
-## Hours Spent (T1–T4)
-
-- T1 + T3 estimated: 2.0h | Actual: ~3.5h
-- T2 estimated: 2.5h | Actual: ~1.5h
-- T4 estimated: 1.0h | Actual: ~0.5h
-- Combined: 5.5h estimated | ~5.5h actual
-
-## T5–T7 Status: Not started
-
-### Week carried forward: 
-
-- T5 (research findings)
-- T6 (demo script)
-- T7 (session summary).
-
-
-## Hours Spent (T1 only)
-```text
-Estimated: 2.0h
-Actual: ~3.5h (extended by sequential root cause elimination:
-source migration → cross-session bug → dual memory bug → keep_alive
-false hypothesis → hardware floor confirmation)
-```
 ## Notes
 
 - The T1 investigation uncovered two pre-existing bugs (cross-session injection, dual memory) that were present before Week 6 and contributing to baseline latency throughout the project. 

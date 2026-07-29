@@ -9,10 +9,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 7 (in progress)
-- T5: Research findings formalization
-- T6: Demo script preparation
-- T7: Session-end summary
+### Planned — Week 8 (Comming Soon)
+
+---
+
+## [0.24.0] - 2026-07-29
+
+### Added
+- `docs/demo_script.md` — 10-query demo sequence covering full capability range. Each query includes expected response, expected TTFS, capability demonstrated, failure mode, and recovery phrase. Dry run log table for Week 10 pre-demo session. Estimated demo duration under 5 minutes.
+
+### Changed
+- `docs/research_notes.md` — Findings 1, 2, 3 converted from narrative prose to structured Finding/Evidence/Mechanism/Implication format with specific measured numbers in each Evidence section.
+- `docs/research_notes.md` — Finding 4 marked as superseded. Earlier hypothesis (tool-response context injection from file summaries) was not confirmed before actual root causes were identified in Week 7. Pointer added to Finding 5.
+- `docs/week7_report.md` — T5 and T6 sections completed. Final hours summary added. Week 8 framing written.
 
 ---
 
@@ -717,6 +726,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.21.0 | TTFS regression fix — dual memory + cross-session bugs | Week 7 | ✅ Released |
 | 0.22.0 | Compound tool chains — 3 chains, Stage 1.5 router | Week 7 | ✅ Released |
 | 0.23.0 | Benchmark extension — 60 queries, compound router tests, formatter fixes | Week 7 | ✅ Released |
+| 0.24.0 | Research findings formalized + demo script | Week 7 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
