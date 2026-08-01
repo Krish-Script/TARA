@@ -19,7 +19,7 @@ AUDIO_CONFIG = {
     "chunk_size":        1024,   # audio buffer size in bytes
     "silence_threshold": 300,    # amplitude below this = silence
                                  # ↑ raise if too sensitive, lower if cuts off early
-    "silence_duration":  1.8,    # seconds of silence before stopping
+    "silence_duration":  0.8,    # seconds of silence before stopping
     "max_duration":      30,     # safety cap: stop after 30s no matter what
 }
 
