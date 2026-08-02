@@ -10,27 +10,28 @@ class LocalSearchTool:
         self.memory = MemoryStore(MEMORY_CONFIG["db_path"])
         self.notes_dir = Path("data/notes").resolve()
 
-    def _search_notes(self, target: str) -> str:
+    def _search_notes(self, target: str) -> str: # type: ignore
         """Scans all local notes for the target keyword."""
         if not self.notes_dir.exists():
             return ""
             
         results = []
         target_lower = target.lower()
+        target_stem = target_lower[:6]  # handles stemming variants
         
         for filepath in glob.glob(str(self.notes_dir / "*.txt")):
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
                     content = f.read()
-                    # Strip NotesTool headers if present
                     clean_content = content.split("---\n")[-1] if "---\n" in content else content
+                    content_lower = clean_content.lower()
                     
-                    if target_lower in clean_content.lower():
+                    if target_lower in content_lower or target_stem in content_lower:
                         results.append(clean_content.strip())
             except Exception:
                 continue
                 
-        return "\n\n".join(results)
+            return "\n\n".join(results)
 
     def search(self, query: str) -> dict:
         """Searches SQLite memory and text notes for the user's query."""
@@ -52,7 +53,10 @@ class LocalSearchTool:
         # 2. Retrieve local data
         # Fetch the list of UserFact objects and ONLY keep facts matching the target
         facts_list = self.memory.get_facts()
-        relevant_facts = [item.fact for item in facts_list if target in item.fact.lower()]
+        relevant_facts = [
+            item.fact for item in facts_list 
+            if target in item.fact.lower() or target[:6] in item.fact.lower()
+        ]
         facts_context = "\n".join(relevant_facts) if relevant_facts else ""
         
         notes_context = self._search_notes(target)

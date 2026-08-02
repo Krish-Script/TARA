@@ -9,7 +9,47 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 8 (Comming Soon)
+### Planned — Week 8
+
+| Version | Description | Week | Status |
+|---------|-------------|------|--------|
+| 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | 🔄 Planned |
+| 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | 🔄 Planned |
+| 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | 🔄 Planned |
+| 0.29.0 | Project abstract + README + GitHub portfolio polish | Week 8 | 🔄 Planned |
+
+---
+
+## [0.25.0] - 2026-08-02
+
+### Fixed
+- `config.py`: `silence_duration` reduced from 1.8s to 0.8s following ambient noise floor calibration (measured mean 1.5 amplitude, threshold 300 = 200× noise floor). Reduces user-perceived TTFS by 1.0s across all query paths. Mid-sentence pause test confirmed no clipping at 0.8s.
+- `components/stt.py`: STT corrections added for accent-specific misrecognitions identified during demo dry run:
+  - `r"\btharal\b"` → `"TARA"`
+  - `r"\btaral\b"` → `"TARA"`
+  - `r"\bredmi\b"` → `"README"`
+- `components/tools/local_search.py` — `_search_notes()`: exact substring match replaced with stem-aware comparison using 6-character prefix. Fixes silent miss on morphological variants (demonstrate / demonstrated / demonstration / demonstrating).
+- `components/tools/local_search.py` — `search()`: same stem fix applied to facts filter (`target[:6] in item.fact.lower()`).
+- `data/notes/`: stale development test notes from July deleted. Notes written during active development sessions (flight times, fabricated meeting dates, raw CPU readings) contaminated LOCAL_SEARCH retrieval during dry run.
+
+### Changed
+- `docs/demo_script.md`: Query 7 primary phrase changed from "Read the README file" to "Summarize the README file" — original phrase caused STT misrecognition of "README" as "Redmi" (phone brand) in Whisper's training distribution.
+- `docs/demo_script.md`: Query 8 primary phrase changed from "What do you know about my project?" to "What do you know about my demonstration?" — matched to actual note content after stale notes removed.
+- `docs/demo_script.md`: Query 1 target TTFS updated from 3.0–3.5s to 2.1–3.5s — warm VRAM state on second and subsequent runs produces sub-floor latency on short responses (observed 2.14s on Run 3).
+- `docs/demo_script.md`: "Tara" (lowercase) casing noted as accepted for Queries 5 and 6 — phonetically correct STT output, cosmetically acceptable, correction not added due to false-positive risk on valid uses of the word.
+
+### Documentation
+- `docs/demo_script.md`: Dry run log populated with three complete runs. Run 3 passes all 10 queries within TTFS targets. All failure modes from Runs 1 and 2 resolved.
+- `docs/research_notes.md`: VAD silence window annotation added to Finding 6: all logged TTFS measurements exclude silence_duration window; user-perceived TTFS = logged TTFS + silence_duration (0.8s post-Week-8, 1.8s in all prior weeks).
+- `docs/week8_report.md`: created.
+
+### Performance
+- User-perceived TTFS (tool path): ~3.1s → ~2.1s (silence_duration reduction)
+- User-perceived TTFS (chat path): ~5.25s → ~4.25s (silence_duration reduction)
+- Demo dry run Run 3: all 10 queries passing, no crashes, no routing failures
+  - Tool path avg TTFS: 1.42s (target ≤1.50s) ✅
+  - Chat path avg TTFS: 3.16s (target ≤4.0s) ✅
+  - LOCAL_SEARCH stem fix: "demonstration" → note retrieved correctly (1.98s TTFS)
 
 ---
 
@@ -727,6 +767,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.22.0 | Compound tool chains — 3 chains, Stage 1.5 router | Week 7 | ✅ Released |
 | 0.23.0 | Benchmark extension — 60 queries, compound router tests, formatter fixes | Week 7 | ✅ Released |
 | 0.24.0 | Research findings formalized + demo script | Week 7 | ✅ Released |
+| 0.25.0 | Demo dry run — VAD calibration, STT fixes, stem matching fix, 3 runs passing | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

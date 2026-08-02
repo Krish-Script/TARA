@@ -37,7 +37,7 @@ class Intent(Enum):
     FILE_READ    = auto()
 
     FILE_LIST    = auto()
-    LOCAL_SEARCH = auto() 
+    LOCAL_SEARCH = auto()
 
 
 class IntentDetector:

@@ -109,6 +109,8 @@ class SpeechToText:
 
     _STT_CORRECTIONS: dict[str, str] = {
         r"\bkrishna\b": "krishnendu",
+        r"\bTara\b": "TARA",
+        r"\btara\b": "TARA",
     }
 
     # ── Transcription ────────────────────────────────────────

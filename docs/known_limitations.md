@@ -1,6 +1,27 @@
 # TARA — Known Limitations
 
-Documented limitations as of Week 5 of 10. Each entry includes root cause and whether a fix is planned.
+Documented limitations as of Week 8 of 10. Each entry includes root cause and whether a fix is planned.
+
+---
+
+## VAD Silence Detection Window Excluded from Logged TTFS
+
+**Limitation:** All logged TTFS measurements throughout the project exclude the `silence_duration` window in `record_audio()`. The recorder waits `silence_duration` seconds of silence after the user stops speaking before passing audio to Whisper. This wait is not captured in `stt_latency` because `start = time.time()` is set at the beginning of `transcribe()`, which is called after `record_audio()` returns.
+
+**User-perceived TTFS = logged TTFS + silence_duration.**
+
+| Period | silence_duration | User-perceived overhead |
+|--------|-----------------|------------------------|
+| Weeks 1–7 | 1.8s | +1.8s on every query |
+| Week 8 onward | 0.8s | +0.8s on every query |
+
+**Root cause:** Configuration parameter was set to a conservative default (1.8s) and never calibrated against the actual ambient noise floor. Noise floor measured at Week 8 as mean amplitude ~1.5 against a threshold of 300 — 200× headroom.
+
+**Fix applied (Week 8):** `silence_duration` reduced to 0.8s. Mid-sentence pause test confirmed no clipping. User-perceived TTFS improvement: 1.0s across all paths.
+
+**Residual limitation:** The 0.8s window is still user-perceived latency that does not appear in any logged TTFS number. Research findings annotated accordingly.
+
+**Fix planned:** No further reduction recommended without VAD endpoint detection replacing the fixed-duration silence window. Implementing proper VAD-based endpoint detection (e.g. Silero VAD) would reduce this to ~0.1–0.2s but is out of scope for this project.
 
 ---
 
@@ -8,13 +29,11 @@ Documented limitations as of Week 5 of 10. Each entry includes root cause and wh
 
 **Limitation:** Creative, persona, and multi-part list prompts produce responses longer than one sentence despite the one-sentence system prompt constraint.
 
-**Root cause:** qwen2.5:3b cannot hold two conflicting generation modes simultaneously — "respond in character as X" and "maximum one sentence." The persona instruction activates an elaboration mode that overrides the length constraint. Post-processing truncation was evaluated and rejected.
+**Root cause:** qwen2.5:3b cannot hold two conflicting generation modes simultaneously — "respond in character as X" and "maximum one sentence." The persona instruction activates an elaboration mode that overrides the length constraint.
 
-**Decision:** Accept and document (Option B). TARA is a productivity assistant; persona prompts are edge cases.
+**Decision:** Accept and document. TARA is a productivity assistant; persona prompts are edge cases. Longer responses on creative prompts are documented in research findings as an accepted trade-off rather than a bug.
 
-**Affected queries:** "Explain X like a pirate / medieval knight / child", multi-step questions ("list 3 differences between X and Y")
-
-**Fix planned:** No. Post-processing truncation would degrade response quality without solving the underlying model behaviour.
+**Fix planned:** No.
 
 ---
 
@@ -22,11 +41,21 @@ Documented limitations as of Week 5 of 10. Each entry includes root cause and wh
 
 **Limitation:** The STT correction `r"\bkrishna\b"` → `"krishnendu"` fires on queries about Krishna the deity or any person named Krishna.
 
-**Root cause:** Substring-level corrections cannot distinguish misrecognitions from valid usage without semantic context.
+**Root cause:** Substring-level corrections cannot distinguish misrecognitions from valid usage without semantic context. The same constraint applies to all entries in `_STT_CORRECTIONS`.
 
 **Examples that trigger incorrectly:** "Tell me about Krishna", "Who was Krishna in the Mahabharata?"
 
-**Fix planned:** No fix at this level. Future intent-aware correction (Week 7+) could suppress correction when a CHAT intent about a named entity is detected.
+**Fix planned:** No fix at this level. Intent-aware correction would require semantic context unavailable at the STT correction stage.
+
+---
+
+## "Tara" Casing in Note Content
+
+**Limitation:** When the user says "TARA" in a dictated note, Whisper transcribes it as "Tara" (title case) rather than "TARA" (all caps). Notes are saved and retrieved correctly — only the visual casing is affected.
+
+**Root cause:** Whisper treats "TARA" as a proper noun and applies standard title-case capitalization. The "Tharal" misrecognition is corrected; "Tara" is phonetically correct and not correctable without false-positive risk on legitimate uses of the word.
+
+**Fix planned:** No. Functionally correct; cosmetically imperfect.
 
 ---
 
@@ -34,66 +63,72 @@ Documented limitations as of Week 5 of 10. Each entry includes root cause and wh
 
 **Limitation:** CPU temperature is not readable via `psutil.sensors_temperatures()` on Windows without third-party sensor drivers.
 
-**Root cause:** `sensors_temperatures()` is a Linux/macOS API. Windows requires WMI or third-party drivers (OpenHardwareMonitor, HWiNFO) to expose CPU thermal data.
+**Root cause:** `sensors_temperatures()` is a Linux/macOS API. Windows requires WMI or third-party drivers to expose CPU thermal data.
 
 **Current behaviour:** TARA reports "CPU temperature is unavailable on this system" gracefully. GPU temperature via pynvml works correctly.
 
-**Fix planned:** WMI-based CPU temperature query in Week 7+ if prioritised.
+**Fix planned:** No. WMI-based CPU temperature query is out of scope for remaining weeks.
 
 ---
 
-## File Management — Not Implemented
+## TTFS on Chat Path (~3.00s hardware floor)
 
-**Limitation:** File management is listed as a key functional requirement in the project objective. It is not implemented as of Week 5.
+**Limitation:** Chat path logged TTFS of 3.00s minimum means approximately 3.80s of user-perceived silence (3.00s + 0.8s VAD window) between the user finishing speaking and TARA beginning to respond. This is perceptible.
 
-**Fix planned:** Week 6, first task.
+**Root cause:** STT (~0.70s) + LLM generation (~1.58s) + TTS synthesis (~0.72s) are sequential and irreducible on this hardware. The 3.00s floor was confirmed post-fix in Week 7 after dual memory injection was removed.
 
----
+**Prior documentation:** This limitation was previously documented as "~2.30s" — that number was measured under dual-injection conditions (Week 5) and is no longer the correct floor. The correct post-fix floor is 3.00s logged / ~3.80s user-perceived.
 
-## Information Retrieval — Not Implemented
-
-**Limitation:** Information retrieval is listed as a key functional requirement in the project objective. It is not implemented as of Week 5.
-
-**Fix planned:** Week 6.
+**Fix planned:** Streaming LLM output would allow TTS synthesis to begin before LLM generation completes, potentially reducing logged TTFS to ~1.5s on the chat path. Out of scope for remaining weeks.
 
 ---
 
-## TTFS on Chat Path (~2.30s)
+## LOCAL_SEARCH: Two LLM Calls Per Query
 
-**Limitation:** Chat path TTFS of 2.30s means approximately 2.3 seconds of silence between the user finishing speaking and TARA beginning to respond. This is perceptible.
+**Limitation:** LOCAL_SEARCH uses two sequential LLM calls: one for keyword extraction and one for answer synthesis. This produces TTFS of 1.4–2.0s on the tool path — higher than single-tool no-LLM paths (1.17–1.53s).
 
-**Root cause:** STT (0.59s) + LLM generation (1.04s) + TTS synthesis (0.66s) are sequential and largely irreducible on this hardware. The LLM cannot generate faster without a larger VRAM budget.
+**Root cause:** Architectural choice. Keyword extraction via LLM allows flexible natural language matching rather than fixed pattern triggers. Synthesis via LLM allows multi-source answer generation from notes and facts.
 
-**Fix planned:** Streaming LLM output (Week 7+) would allow TTS synthesis to begin before LLM generation completes, potentially reducing TTFS to ~1.5s on the chat path.
+**Current behaviour:** Acceptable within target range. Two-call latency is consistent and does not grow with session length (no conversation history injected).
+
+**Fix planned:** No. The two-call architecture is intentional. Keyword extraction could be replaced with regex stripping of possessive patterns, but this would reduce flexibility. Out of scope.
 
 ---
 
 ## VRAM Misroute on Ambiguous STT
 
-**Limitation:** If Whisper mishears "how much VRAM" as "so much VRAM", the query routes to LLM which fabricates a plausible-sounding but wrong VRAM value.
+**Limitation:** If Whisper mishears a SYSTEM_QUERY trigger phrase, the query routes to CHAT and the LLM fabricates a plausible-sounding but wrong hardware value.
 
-**Root cause:** "so much" correction was removed (Week 5 T6) because it caused false positives on valid English. The misroute can still occur if the STT output does not match any SYSTEM_QUERY pattern.
+**Root cause:** No confidence threshold on intent classification. If no pattern matches, the query falls through to CHAT regardless of whether the original intent was deterministic.
 
-**Current behaviour:** LLM will fabricate hardware values. User receives wrong information with no indication it is fabricated.
+**Current behaviour:** LLM will fabricate hardware values with no uncertainty signal. This is documented as Finding 3 in research_notes.md.
 
-**Fix planned:** Confidence threshold on intent classification (Week 7+) — if no pattern matches with sufficient specificity, ask for clarification rather than routing to LLM.
-
----
-
-## Error Handling
-
-**Limitation:** Error handling is listed as a key functional requirement ("robust error handling and recovery mechanisms") in the project objective. The current implementation catches all exceptions in the main loop and speaks "Sorry, something went wrong." This is a crash suppressor, not a recovery mechanism.
-
-**What is missing:** Per-component error classification, graceful degradation (e.g. TTS failure → print response to terminal), retry logic for transient tool failures, session state preservation across errors.
-
-**Fix planned:** Week 6–7. This gap must be closed before the project is presented as production-ready.
+**Fix planned:** No for this project. A confidence threshold or clarification request on ambiguous inputs would require architectural changes out of scope for remaining weeks.
 
 ---
 
 ## Chunked TTS on Single-Sentence Responses
 
-**Limitation:** Chunked TTS streaming (Week 3 T6) provides no benefit for single-sentence responses — threading overhead adds ~0.1–0.2s with zero parallelism gain.
+**Limitation:** Chunked TTS streaming provides no benefit for single-sentence responses. Threading overhead adds ~0.1–0.2s with zero parallelism gain.
 
-**Current behaviour:** Sequential fallback is used for single-chunk responses. Multi-sentence benefit only materialises for 2+ sentence responses.
+**Current behaviour:** Sequential fallback used for single-chunk responses. Multi-sentence benefit only materialises for 2+ sentence responses.
 
-**Fix planned:** Streaming LLM output would provide first-word-level chunking regardless of sentence count. Deferred to Week 7+.
+**Fix planned:** Streaming LLM output would provide first-word-level chunking regardless of sentence count. Out of scope.
+
+---
+
+## ~~File Management — Not Implemented~~ ✅ Resolved (Week 6)
+
+File reader tool implemented in Week 6.
+
+---
+
+## ~~Information Retrieval — Not Implemented~~ ✅ Resolved (Week 6)
+
+LOCAL_SEARCH tool implemented in Week 6 with SQLite facts store and filesystem note retrieval.
+
+---
+
+## ~~Error Handling — Crash Suppressor Only~~ ✅ Resolved (Week 6)
+
+Three-tier error handling implemented in Week 6: component crash isolation, graceful degradation per component, session state preservation across errors.

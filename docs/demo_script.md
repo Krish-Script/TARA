@@ -94,7 +94,7 @@ Reads a different note if Query 5 failed to save.
 ---
 
 ### Query 7 — File Reader with LLM Summarisation
-**Say:** "Read the README file."  
+**Say:** "Summarize the README file."  
 **Expected:** 2–3 sentence spoken summary of TARA's README content  
 **Expected TTFS:** 2.2–2.6s  
 **Demonstrates:** File reader tool, LLM-assisted summarisation, longest tool path in the suite  
@@ -107,7 +107,7 @@ LLM summary is vague or wrong — say: "The summarisation quality is model-depen
 ---
 
 ### Query 8 — Local Information Retrieval
-**Say:** "What do you know about my project?"  
+**Say:** "What do you know about my demonstration?"  
 **Expected:** Synthesised response drawing from notes and stored facts  
 **Expected TTFS:** 1.4–2.0s  
 **Demonstrates:** LOCAL_SEARCH tool, hybrid retrieval across SQLite and filesystem, possessive query routing  
@@ -159,7 +159,7 @@ Response is too long — TTFS exceeds 4.5s.
 
 ---
 
-## Dry Run Log
+## Dry Run Log — Run 1 (pre-fix)
 
 Complete this table once before Week 10 demo:
 
@@ -179,3 +179,31 @@ Complete this table once before Week 10 demo:
 Run the full sequence in one live session. Do not skip queries.
 Fill in actual TTFS from console output. Note any STT misheard
 phrases and their corrected alternates for your accent specifically.
+
+## Dry Run Log — Run 2 (post-fix: STT corrections + notes cleaned)
+| Query | Actual TTFS | STT Output | Notes |
+|-------|------------|------------|-------|
+| 1 | 3.21s | My name is TARA. How can I assist you today? | |
+| 2 | 1.33s | It's 07:00 PM on Sunday, August 02, 2026. | |
+| 3 | 1.67s | CPU is at 67.1 percent, RAM is 11.0 of 15.7 gigabytes, and disk is 71.9 percent full. | |
+| 4 | 1.17s | GPU temperature is 45 degrees Celsius. | |
+| 5 | 1.53s | Note saved: I demonstrated Tara today. | |
+| 6 | 1.36s | Your last note says: I demonstrated Tara today. | |
+| 7 | 1.89s | The file README.md is quite long, so here is a summary: This is about an AI assistant that works offline without needing internet and can do things like remembering what you said earlier and calculating numbers. It's built on a specific hardware setup. | |
+| 8 | 1.21s | I couldn't find any saved notes or facts about project. | |
+| 9 | 1.20s | That's 51. | |
+| 10 | 3.10s |  A large language model is a type of artificial intelligence that has been trained on vast amounts of text data to generate human-like responses and produce coherent text across various topics. | |
+
+## Dry Run Log — Run 3
+| Query | Actual TTFS | STT Output | Notes |
+|-------|------------|------------|-------|
+| 1 | 2.14s | My name is TARA. How can I assist you today? | |
+| 2 | 1.29s | It's 07:47 PM on Sunday, August 02, 2026. | |
+| 3 | 1.68s | CPU is at 61.1 percent, RAM is 11.8 of 15.7 gigabytes, and disk is 71.9 percent full. | |
+| 4 | 1.50s | GPU temperature is 46 degrees Celsius. | |
+| 5 | 1.34s | Take a note, I demonstrated Tara today. | |
+| 6 | 1.42s | Your last note says: I demonstrated Tara today. | |
+| 7 | 2.27s | The file README.md is quite long, so here is a summary: This is about an AI assistant named TARA that runs locally and doesn't need internet, has various useful features like voice input and fact recall, and uses hardware components like a specific laptop model. | |
+| 8 | 1.26s | You saved notes that state you demonstrated TARA today. | |
+| 9 | 1.22s | That's 51. | |
+| 10 | 3.08s | A large language model is a type of artificial intelligence designed to understand and generate human-like text, typically trained on vast amounts of text data. | |
