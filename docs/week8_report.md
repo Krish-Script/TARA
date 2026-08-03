@@ -3,15 +3,13 @@
 
 **Sprint duration:** Week 8 of 10
 
-**Status:** 🔄 In Progress (1/7 tasks complete, pre-task instrumentation work completed)
+**Status:** 🔄 In Progress (3/7 tasks complete)
 
 ---
 
 ## Pre-Task Work: Instrumentation Audit and VAD Calibration
 
-Before T1 could begin, an instrumentation audit was conducted to verify that TTFS
-measurements were valid for the dry run log. This surfaced two findings that required
-fixes before running the demo sequence.
+Before T1 could begin, an instrumentation audit was conducted to verify that TTFS measurements were valid for the dry run log. This surfaced two findings that required fixes before running the demo sequence.
 
 ### Finding A — VAD Silence Window Excluded from All Prior TTFS Measurements
 
@@ -25,11 +23,10 @@ ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
 `transcribe()` is called after `record_audio()` completes. `record_audio()` waits
 `silence_duration` seconds of silence after the user stops speaking before returning.
 
-This means every TTFS measurement in Weeks 1–7 excludes the silence detection window.
+This means every TTFS measurement in Weeks 1–7 excludes the silence detection window.  
 User-perceived TTFS equals logged TTFS plus `silence_duration`.
 
-With `silence_duration=1.8s` (the prior default), user-perceived TTFS for the tool
-path was approximately 1.30s + 1.80s = 3.10s — not 1.30s as logged.
+With `silence_duration=1.8s` (the prior default), user-perceived TTFS for the tool path was approximately 1.30s + 1.80s = 3.10s — not 1.30s as logged.
 
 **Fix:** Ambient noise floor measured across four diagnostic runs:
 
@@ -40,16 +37,11 @@ path was approximately 1.30s + 1.80s = 3.10s — not 1.30s as logged.
 | 3 | 1.5 | 2.8 |
 | 4 | 1.7 | 16.4 |
 
-The initial spike (2949.9) was a one-off mechanical transient. True ambient mean is
-~1.5 amplitude. Configured silence threshold of 300 is 200x the noise floor.
+The initial spike (2949.9) was a one-off mechanical transient. True ambient mean is ~1.5 amplitude. Configured silence threshold of 300 is 200x the noise floor.
 
-`silence_duration` reduced from 1.8s to 0.8s. Mid-sentence pause test confirmed no
-clipping at 0.8s. User-perceived TTFS improvement: 1.0s across all query paths.
+`silence_duration` reduced from 1.8s to 0.8s. Mid-sentence pause test confirmed no clipping at 0.8s. User-perceived TTFS improvement: 1.0s across all query paths.
 
-**Impact on prior measurements:** All logged TTFS numbers from Weeks 1–7 are understated
-by 1.8s from the user's perspective. The silence window is constant across all paths,
-so all relative comparisons (tool vs chat, pre-fix vs post-fix) remain valid. Absolute
-numbers are annotated in research_notes.md accordingly.
+**Impact on prior measurements:** All logged TTFS numbers from Weeks 1–7 are understated by 1.8s from the user's perspective. The silence window is constant across all paths, so all relative comparisons (tool vs chat, pre-fix vs post-fix) remain valid. Absolute numbers are annotated in research_notes.md accordingly.
 
 ### Finding B — STT Misrecognitions Identified Under Real Demo Conditions
 
@@ -61,18 +53,13 @@ Two accent-specific misrecognitions identified during demo sequence preparation:
 | "TARA" | "Tara" | Accepted — phonetically correct, cosmetically acceptable |
 | "README" | "Redmi" | Correction added: `r"\bredmi\b" → "README"` |
 
-"Tara" (lowercase) not corrected — the pattern `r"\btara\b"` would incorrectly fire on
-valid uses of the word in other queries. Risk outweighs benefit.
+"Tara" (lowercase) not corrected — the pattern `r"\btara\b"` would incorrectly fire on valid uses of the word in other queries. Risk outweighs benefit.
 
 ### Finding C — LOCAL_SEARCH Stem Matching Bug
 
-`_search_notes()` used exact substring matching: `if target_lower in content_lower`.
-Query "What do you know about my demonstration?" extracted keyword "demonstration" via
-LLM. Note 6 contained "demonstrated". "demonstration" is not a substring of
-"demonstrated" — search returned no results despite a relevant note existing.
+`_search_notes()` used exact substring matching: `if target_lower in content_lower`. Query "What do you know about my demonstration?" extracted keyword "demonstration" via LLM. Note 6 contained "demonstrated". "demonstration" is not a substring of "demonstrated" — search returned no results despite a relevant note existing.
 
-**Fix:** Added 6-character prefix stem matching to both `_search_notes()` and the
-facts filter in `search()`:
+**Fix:** Added 6-character prefix stem matching to both `_search_notes()` and the facts filter in `search()`:
 
 ```python
 # Before
@@ -173,10 +160,7 @@ Handles morphological variants: demonstrate / demonstrated / demonstration / dem
 | All-query TTFS min | 1.17s | — |
 | All-query TTFS max | 3.21s | — |
 
-**Note on Query 1 (2.14s):** Chat path below the confirmed 3.00s hardware floor. Cause:
-VRAM warm state after two prior runs — model already loaded. Short response ("My name is
-TARA. How can I assist you today?") further reduced TTS synthesis time. Not reproducible
-from cold start. Query 1 target range updated to 2.1–3.5s to reflect warm-state variance.
+**Note on Query 1 (2.14s):** Chat path below the confirmed 3.00s hardware floor. Cause: VRAM warm state after two prior runs — model already loaded. Short response ("My name is TARA. How can I assist you today?") further reduced TTS synthesis time. Not reproducible from cold start. Query 1 target range updated to 2.1–3.5s to reflect warm-state variance.
 
 ### Files Changed (T1 + pre-task work)
 
@@ -205,22 +189,47 @@ from cold start. Query 1 target range updated to 2.1–3.5s to reflect warm-stat
 
 ## T2 Status: Partially Complete
 
-Research findings audit in progress. VAD silence window annotation added to Finding 6
-during pre-task work. Remaining items (Finding 1 percentage correction, Finding 2
-pre-fix annotation, measurement integrity preamble) documented in research_notes.md
-update — see that file for current state.
+Research findings audit in progress. VAD silence window annotation added to Finding 6 during pre-task work.  
+Remaining items (Finding 1 percentage correction, Finding 2 pre-fix annotation, measurement integrity preamble) documented in research_notes.md update — see that file for current state.
 
 ---
 
-## T3 Status: Not Started
+## T3 Status: Complete
 
-Session-end summary (carry-over from Week 7). Estimated 0.75h. Scheduled for
-completion before Week 8 closes.
+### Session-End Summary Implemented
 
-**Implementation note from sprint plan review:** The LLM summarization call inside
-`generate_session_summary()` must have a timeout guard. If the call does not return
-within 5s, TARA should speak "Goodbye." and exit anyway. A stalled summary call
-that hangs the shutdown sequence would be a demo-critical failure on Query 10.
+On exit (`quit`, `bye`, `goodbye`, `exit`), TARA now generates and speaks a one-sentence summary of the session before shutting down. The summary is also saved to `data/notes/` as a session record.
+
+**Implementation:** `_generate_session_summary()` added to `Orchestrator`. Called from `_handle_exit()` after the goodbye phrase is spoken.
+
+**Behaviour verified:**
+
+| Scenario | Result |
+|----------|--------|
+| Normal 3-turn session | Summary spoken and saved to notes ✅ |
+| Zero-turn cold exit | No LLM call fired, clean exit ✅ |
+| LLM timeout (0.001s guard) | Silent skip, no hang, no note saved ✅ |
+
+**Sample spoken summary (3-turn session):**
+> "The assistant had three conversation turns and took an average of 2.69 seconds per response in a session that lasted about 1.2 minutes."
+
+**Sample saved note:**
+*Raw Transcription:* take a note: Session summary — The assistant had three conversation turns and took an average of 2.69 seconds per response in a session that lasted about 1.2 minutes.
+
+Session summary — The assistant had three conversation turns and took an average of 2.69 seconds per response in a session that lasted about 1.2 minutes.
+
+**Design decisions:**
+
+- LLM call is timeout-guarded at 5.0s via `ThreadPoolExecutor`. If the call stalls, TARA exits silently after the goodbye phrase — no visible hang.
+- Zero-turn guard: if `total_turns == 0`, returns immediately with no LLM call.
+- Note saved via `tool_registry.dispatch(Intent.NOTES_CREATE, ...)` — uses the existing tool registry rather than direct instantiation.
+- All three failure paths (timeout, zero turns, TTS failure) exit cleanly with a warning logged and no user-visible error.
+
+### Files Changed
+
+#### orchestrator.py
+- `_generate_session_summary()`: new method — builds stats prompt, calls LLM with 5.0s timeout guard, speaks summary, saves to notes via NOTES_CREATE.
+- `_handle_exit()`: updated to call `_generate_session_summary()` after goodbye phrase, before returning `False`.
 
 ---
 
@@ -238,15 +247,13 @@ Benchmark extension to 70 queries. Depends on T4 findings for adversarial cases.
 
 ## T6 Status: In Progress
 
-CHANGELOG.md updated for Week 8 (version 0.25.0). GitHub README and folder structure
-review pending.
+CHANGELOG.md updated for Week 8 (version 0.25.0). GitHub README and folder structure review pending.
 
 ---
 
 ## T7 Status: Not Started
 
-Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finalized —
-abstract findings section must use corrected post-fix numbers.
+Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finalized — abstract findings section must use corrected post-fix numbers.
 
 ---
 
@@ -257,11 +264,11 @@ abstract findings section must use corrected post-fix numbers.
 | Pre-task: VAD calibration + instrumentation audit | — | ~0.5h |
 | T1 — Demo dry run (3 runs + fixes) | 1.5h | ~2.0h |
 | T2 — Research audit (partial) | 1.5h | ~0.25h |
-| T3–T7 | 6.5h | 0h |
-| **Total** | **10.0h** | **~2.75h** |
+| T3 — Session-end summary | 0.75h | ~0.75h |
+| T4–T7 | 5.75h | 0h |
+| **Total** | **10.0h** | **~3.5h** |
 
-T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. The stem matching bug
-(Finding C above) was not anticipated in the sprint plan and added one additional run.
+T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 came in on estimate. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
 
 ---
 
@@ -283,17 +290,8 @@ T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. The stem matchin
 
 ## Notes
 
-- The VAD silence window finding changes the user experience story for the demo
-  significantly. User-perceived TTFS for the tool path is now ~2.1s (0.8s + 1.28s),
-  down from ~3.1s (1.8s + 1.28s) in all prior weeks. This improvement requires no
-  pipeline change and no model change — it was a miscalibrated configuration parameter.
+- The VAD silence window finding changes the user experience story for the demo significantly. User-perceived TTFS for the tool path is now ~2.1s (0.8s + 1.28s), down from ~3.1s (1.8s + 1.28s) in all prior weeks. This improvement requires no pipeline change and no model change — it was a miscalibrated configuration parameter.
 
-- The LOCAL_SEARCH stem matching fix is a genuine functional improvement, not just a
-  demo patch. Any morphological variant of a search keyword (plurals, past tense,
-  nominalizations) previously returned no results silently. The fix applies to both
-  note search and facts search.
+- The LOCAL_SEARCH stem matching fix is a genuine functional improvement, not just a demo patch. Any morphological variant of a search keyword (plurals, past tense, nominalizations) previously returned no results silently. The fix applies to both note search and facts search.
 
-- Three bugs found and fixed during T1 (STT corrections, stale notes, stem matching)
-  confirms the sprint plan's prediction: "the dry run will surface at least two problems
-  you cannot anticipate from the script alone." Running the dry run first was correct
-  sequencing.
+- Three bugs found and fixed during T1 (STT corrections, stale notes, stem matching) confirms the sprint plan's prediction: "the dry run will surface at least two problems you cannot anticipate from the script alone." Running the dry run first was correct sequencing.

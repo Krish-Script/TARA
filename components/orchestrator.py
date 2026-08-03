@@ -168,6 +168,7 @@ class Orchestrator:
 
     def _handle_exit(self, text: str) -> bool:
         self._say("Goodbye! Have a great day.")
+        self._generate_session_summary()
         return False  # signal main loop to stop
 
     def _handle_remember(self, text: str) -> bool:
@@ -417,3 +418,64 @@ class Orchestrator:
             tool_total = avg(self.stats["stt"]) + avg(self.stats["tool_latency"]) + avg(self.stats["tts"])
             print(f"  Tool path total  | {tool_total:.2f}s")
         print("=" * 55 + "\n")
+
+    def _generate_session_summary(self) -> None:
+        """
+        Generate a spoken session summary on exit.
+        LLM call is timeout-guarded — if it stalls, exits silently.
+        Summary is saved to notes as a session record.
+        """
+        def avg(lst): return sum(lst) / len(lst) if lst else 0.0
+
+        chat_turns  = len(self.stats["llm"])
+        tool_turns  = len(self.stats["tool_latency"])
+        total_turns = chat_turns + tool_turns
+
+        # Nothing to summarise — silent exit
+        if total_turns == 0:
+            return
+
+        all_ttfs    = self.stats["ttfs"] + self.stats["ttfs_tool"]
+        avg_ttfs    = avg(all_ttfs)
+        session_mins = (time.time() - self.stats["session_start"]) / 60
+
+        prompt = (
+            f"Summarise this assistant session in exactly one sentence. "
+            f"Plain spoken English only. No bullet points. No preamble.\n"
+            f"Session data: {total_turns} turns ({chat_turns} chat, "
+            f"{tool_turns} tool), {session_mins:.1f} minutes, "
+            f"average response time {avg_ttfs:.2f} seconds.\n"
+            f"Summary:"
+        )
+
+        # ── Timeout guard ─────────────────────────────────────────────
+        summary_text = None
+        try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self.llm.generate, prompt, "")
+                result, _ = future.result(timeout=5.0)
+                summary_text = result.strip()
+        except FuturesTimeout:
+            error_logger.warning("Session summary LLM call timed out — skipping spoken summary.")
+        except Exception as e:
+            error_logger.warning(f"Session summary failed: {e}")
+
+        if not summary_text:
+            return
+
+        # ── Speak summary ─────────────────────────────────────────────
+        try:
+            self.tts.speak(summary_text)
+        except Exception as e:
+            error_logger.warning(f"Session summary TTS failed: {e}")
+
+        # ── Save to notes ─────────────────────────────────────────────
+        try:
+            from components.intent import Intent
+            self.tool_registry.dispatch(
+                Intent.NOTES_CREATE,
+                f"take a note: Session summary — {summary_text}"
+            )
+        except Exception as e:
+            error_logger.warning(f"Session summary note save failed: {e}")

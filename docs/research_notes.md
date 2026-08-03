@@ -8,7 +8,7 @@
 Weeks 1–6 measurements were collected under two pre-existing bugs: cross-session context injection (`session_id=None` in `build_context()`) and dual memory injection (SQLite-backed context via `build_context()` plus explicit `conversation_history` list
 in `llm.py`). These inflated absolute TTFS measurements across all chat-path sessions. Bug fix applied in Week 7. Findings citing TTFS from Weeks 1–6 are annotated accordingly. Post-fix measurements use the corrected pipeline. Hardware floor confirmed at 3.00s (STT 0.70s + LLM 1.58s + TTS 0.72s).
 
-Additionally: all logged TTFS measurements across all weeks exclude the VAD silence-detection window (`silence_duration=0.8s` post-Week-8 calibration, `1.8s` in all prior weeks). User-perceived TTFS equals logged TTFS plus the silence window duration. All relative comparisons between paths and conditions remain valid — the silence window is constant across all measurements. Absolute TTFS numbers should be interpreted as logged (pipeline-only) values, not user-perceived values.
+**Additionally:** all logged TTFS measurements across all weeks exclude the VAD silence-detection window (`silence_duration=0.8s` post-Week-8 calibration, `1.8s` in all prior weeks). User-perceived TTFS equals logged TTFS plus the silence window duration. All relative comparisons between paths and conditions remain valid — the silence window is constant across all measurements. Absolute TTFS numbers should be interpreted as logged (pipeline-only) values, not user-perceived values.
 
 ---
 

@@ -13,10 +13,26 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | 🔄 Planned |
 | 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | 🔄 Planned |
 | 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | 🔄 Planned |
 | 0.29.0 | Project abstract + README + GitHub portfolio polish | Week 8 | 🔄 Planned |
+
+---
+
+## [0.26.0] - 2026-08-03
+
+### Added
+- `orchestrator.py` — `_generate_session_summary()`: generates and speaks a one-sentence session summary on exit using session stats (turn count, path breakdown, average TTFS, session duration). Summary saved to `data/notes/`
+  via `NOTES_CREATE` dispatch.
+  - LLM call timeout-guarded at 5.0s via `ThreadPoolExecutor`. On timeout, exits silently with warning logged — no hang, no user-visible failure.
+  - Zero-turn guard: no LLM call fired if session has zero turns.
+  - All failure paths (timeout, TTS crash, note save failure) exit cleanly.
+- `orchestrator.py` — `_handle_exit()`: updated to call `_generate_session_summary()` after goodbye phrase, before returning `False`.
+
+### Performance
+- Session summary TTFS: ~2.5–3.0s (single LLM call, short prompt, short output)
+- Cold exit (zero turns): 0s overhead — guard fires immediately
+- Timeout path: 5.0s maximum overhead before clean exit
 
 ---
 
@@ -768,6 +784,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.23.0 | Benchmark extension — 60 queries, compound router tests, formatter fixes | Week 7 | ✅ Released |
 | 0.24.0 | Research findings formalized + demo script | Week 7 | ✅ Released |
 | 0.25.0 | Demo dry run — VAD calibration, STT fixes, stem matching fix, 3 runs passing | Week 8 | ✅ Released |
+| 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

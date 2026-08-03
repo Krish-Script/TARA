@@ -25,6 +25,18 @@ Documented limitations as of Week 8 of 10. Each entry includes root cause and wh
 
 ---
 
+## Session Summary Skipped on LLM Timeout
+
+**Limitation:** If the LLM call inside `_generate_session_summary()` does not return within 5.0 seconds, the spoken summary and note save are both skipped. TARA exits cleanly after the goodbye phrase with no user-visible indication that the summary was skipped.
+
+**Root cause:** Intentional design — a stalled summary call on exit would be a demo-critical failure. The timeout guard prioritises clean shutdown over summary completeness.
+
+**Current behaviour:** Warning logged to error log. No note saved for that session. The goodbye phrase has already been spoken before the summary attempt begins.
+
+**Fix planned:** No. The 5.0s timeout is generous for a short single-turn LLM call on warm VRAM. A genuine stall at this stage indicates a deeper Ollama issue that a longer timeout would not resolve.
+
+---
+
 ## Response Length
 
 **Limitation:** Creative, persona, and multi-part list prompts produce responses longer than one sentence despite the one-sentence system prompt constraint.
