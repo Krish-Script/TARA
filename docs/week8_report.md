@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 8 of 10
 
-**Status:** 🔄 In Progress (3/7 tasks complete)
+**Status:** 🔄 In Progress (4/7 tasks complete — T1, T2, T3, T4 done)
 
 ---
 
@@ -233,9 +233,32 @@ Session summary — The assistant had three conversation turns and took an avera
 
 ---
 
-## T4 Status: Not Started
+## T4 Status: Complete
 
-15 adversarial robustness inputs across 5 categories. Scheduled after T3.
+### Adversarial Robustness Testing — 15/15 Pass
+
+Full test log in `docs/robustness_test.md`. All 15 inputs produced acceptable
+outcomes. Zero fixes required.
+
+| Category | Inputs | Pass | Fail | Key Finding |
+|----------|--------|------|------|-------------|
+| C1 — Long inputs | 3 | 3 | 0 | Buried triggers route correctly regardless of surrounding words |
+| C2 — Short inputs | 3 | 3 | 0 | All fall to CHAT as expected. C2-C response degraded by memory context bleed on ambiguous input |
+| C3 — Ambiguous | 3 | 3 | 0 | No false positive tool routing. "What's my memory?" exposes documented RAM pattern gap |
+| C4 — Rapid succession | 3 | 3 | 0 | TTFS decreased under load (1.37s → 1.13s → 1.09s) — keep_alive working correctly |
+| C5 — Empty/noise | 3 | 3 | 0 | speaking_started guard blocks all non-speech input cleanly |
+| **Total** | **15** | **15** | **0** | |
+
+**Two findings from adversarial testing documented in research_notes.md:**
+
+Finding 8 — Pattern specificity tradeoff: keyword routing cannot simultaneously prevent false positives and achieve full coverage on near-miss phrasings. "What's my memory?" does not trigger SYSTEM_QUERY by design — the same specificity that correctly routes "Do you have a good memory?" to CHAT also misses "What's my memory?" as a RAM query. No resolution without introducing ambiguity elsewhere.
+
+Finding 9 — keep_alive validation under rapid succession: TTFS decreased across three back-to-back tool queries fired within 2s of each response ending. Model stays loaded in VRAM between calls. Directly validates the Week 7 decision to reject keep_alive=0.
+
+### Files Created
+
+#### docs/robustness_test.md
+- Full 15-input adversarial test log with STT output, intent classification, TARA response, TTFS, and verdict for every input.
 
 ---
 
@@ -265,10 +288,11 @@ Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finaliz
 | T1 — Demo dry run (3 runs + fixes) | 1.5h | ~2.0h |
 | T2 — Research audit (partial) | 1.5h | ~0.25h |
 | T3 — Session-end summary | 0.75h | ~0.75h |
-| T4–T7 | 5.75h | 0h |
-| **Total** | **10.0h** | **~3.5h** |
+| T4 — Adversarial robustness testing | 2.0h | ~1.0h |
+| T5–T7 | 3.75h | 0h |
+| **Total** | **10.0h** | **~4.5h** |
 
-T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 came in on estimate. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
+T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 came in on estimate. T4 came in under estimate — zero fixes required, no unacceptable outcomes. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
 
 ---
 

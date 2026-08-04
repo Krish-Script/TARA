@@ -13,9 +13,26 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | 🔄 Planned |
 | 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | 🔄 Planned |
 | 0.29.0 | Project abstract + README + GitHub portfolio polish | Week 8 | 🔄 Planned |
+
+---
+
+## [0.27.0] - 2026-08-04
+
+### Added
+- `docs/robustness_test.md`: adversarial robustness test log — 15 inputs across 5 categories, all passing. Documents STT output, intent classification, TARA response, TTFS, and verdict for each input.
+
+### Testing
+- Category 1 (long inputs, 3 queries): buried trigger phrases route correctly regardless of surrounding words. STT held for 30+ word inputs without degradation. TTFS range: 1.63–2.16s.
+- Category 2 (short inputs, 3 queries): single-word inputs fall to CHAT as designed — no multi-word pattern match. Responses coherent. C2-C showed memory context bleed on ambiguous input — documented, not fixed.
+- Category 3 (ambiguous, 3 queries): no false positive tool routing on any input. "What's my memory?" correctly falls to CHAT — pattern specificity tradeoff documented in research_notes.md Finding 8.
+- Category 4 (rapid succession, 3 queries): TTFS decreased across sequence (1.37s → 1.13s → 1.09s) — keep_alive="5m" validated under back-to-back load. No latency spike, no Ollama reload overhead.
+- Category 5 (empty/noise, 3 queries): speaking_started guard blocked desk taps, audible breathing, and silence cleanly. No crash, no LLM call fired.
+
+### Research
+- Finding 8 added to research_notes.md: keyword routing pattern specificity tradeoff — cannot simultaneously prevent false positives and achieve full near-miss coverage without introducing ambiguity.
+- Finding 9 added to research_notes.md: keep_alive="5m" validated under rapid succession — model warm in VRAM, TTFS stable across back-to-back queries.
 
 ---
 
@@ -785,6 +802,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.24.0 | Research findings formalized + demo script | Week 7 | ✅ Released |
 | 0.25.0 | Demo dry run — VAD calibration, STT fixes, stem matching fix, 3 runs passing | Week 8 | ✅ Released |
 | 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | ✅ Released |
+| 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

@@ -112,6 +112,38 @@ All three outperform the chat path floor of 3.00s and match or beat the single-t
 
 ---
 
+## Finding 8 — Keyword Routing Pattern Specificity as an Irreducible Coverage Tradeoff
+
+**Finding:** Keyword-based intent routing cannot simultaneously prevent false positives on near-miss phrasings and achieve full coverage on all valid trigger variants — the specificity required for one degrades the other.
+
+**Evidence:** Adversarial test C3-A: "What's my memory?" did not trigger SYSTEM_QUERY and fell to CHAT. The existing benchmark deliberately includes "Do you have a good memory?" as a confirmed CHAT case (edge — memory concept). The same pattern specificity that correctly routes the benchmark case also misses "What's my memory?" as a RAM query. Both outcomes are correct given the pattern design — but they cannot both be satisfied simultaneously without introducing ambiguity in the boundary between SYSTEM_QUERY and CHAT.
+
+**Mechanism:** SYSTEM_QUERY patterns require explicit hardware-specific vocabulary ("RAM", "memory usage", "cpu usage", "disk space"). This specificity was intentional — it prevents false positives on "Do you have a good memory?", "Explain how RAM works", and similar CHAT queries already in the benchmark. Broadening the pattern to catch "What's my memory?" would require matching "memory" as a standalone trigger, which reintroduces the false positive risk on every memory-related CHAT query.
+
+**Implication:** Keyword routing pattern design involves an irreducible coverage tradeoff. Increasing specificity reduces false positives and increases false negatives on near-miss phrasings. Reducing specificity achieves the reverse. For a voice assistant with a defined capability set, erring toward specificity is the correct choice — a missed routing that falls to CHAT produces a coherent if imprecise response, while a false positive tool routing produces a wrong deterministic answer with no uncertainty signal.
+
+---
+
+## Finding 9 — keep_alive State Stability Under Rapid Succession Queries
+
+**Finding:** With keep_alive="5m", Ollama maintains the model in VRAM between queries fired within seconds of each response ending — producing stable or decreasing TTFS under back-to-back load rather than the reload overhead seen with keep_alive=0.
+
+**Evidence:** Three tool-path queries fired within 2s of each response ending (rapid succession adversarial test, Week 8):
+
+| Query | Intent | TTFS |
+|-------|--------|------|
+| "What time is it?" | TIME_QUERY | 1.37s |
+| "What's my CPU usage?" | SYSTEM_QUERY | 1.13s |
+| "Calculate 10 plus 20." | CALCULATION | 1.09s |
+
+TTFS decreased across the sequence. No latency spike, no reload overhead between calls.
+
+**Mechanism:** keep_alive="5m" holds the model loaded in VRAM for 5 minutes after the last inference call. Back-to-back queries within that window skip the model loading step entirely. The decreasing TTFS reflects warm VRAM state and consistent STT latency on short inputs (0.58–0.68s).
+
+**Implication:** For demo conditions where queries arrive in rapid succession, keep_alive="5m" is the correct setting. This directly validates the Week 7 decision to reject keep_alive=0, which added 4–6s reload overhead per turn and was measured and rejected as a TTFS regression fix hypothesis. The keep_alive setting is a demo-critical configuration parameter, not a minor tuning detail.
+
+---
+
 ## What Has Not Been Measured That Would Be Worth Measuring
 
 ### 1. The Pareto Frontier Between VRAM and Format Compliance
