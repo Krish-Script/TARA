@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 8 of 10
 
-**Status:** 🔄 In Progress (4/7 tasks complete — T1, T2, T3, T4 done)
+**Status:** 🔄 In Progress (5/7 tasks complete — T1, T2, T3, T4, T5 done)
 
 ---
 
@@ -262,9 +262,41 @@ Finding 9 — keep_alive validation under rapid succession: TTFS decreased acros
 
 ---
 
-## T5 Status: Not Started
+## T5 Status: Complete
 
-Benchmark extension to 70 queries. Depends on T4 findings for adversarial cases.
+### Benchmark Extended to 70 Queries
+
+10 new cases added to `tests/test_benchmark.py`. All derived from T4 adversarial findings and Week 8 demo fixes — no arbitrary additions.
+
+**New intent cases (8):** Added to `INTENT_TEST_CASES` under a dedicated Week 8 adversarial findings section.
+
+| Query | Expected | Rationale |
+|-------|----------|-----------|
+| "What's my memory?" | CHAT | Documents Finding 8 — intentional pattern gap |
+| "Show me what you know." | CHAT | C3-B adversarial — no possessive+topic |
+| "What time does the file say?" | CHAT | C3-C adversarial — ambiguous, falls to CHAT |
+| "What's my memory usage?" | SYSTEM_QUERY | Contrast case — "usage" suffix triggers correctly |
+| "I need to check, what is my CPU usage right now?" | SYSTEM_QUERY | Long input, buried trigger |
+| "Take a note: meeting at 3pm." | NOTES_CREATE | Colon separator variant |
+| "Summarize the README file." | FILE_READ | Demo Q7 fixed phrase |
+| "What do you know about my demonstration?" | LOCAL_SEARCH | Demo Q8 fixed phrase |
+
+**New compound cases (2):** Added to `COMPOUND_TEST_CASES`.
+
+| Query | Expected chain | Rationale |
+|-------|---------------|-----------|
+| "Take a note with my current RAM usage" | note_with_system_data | RAM variant of existing CPU case |
+| "System status report" | system_status_snapshot | Short-form trigger phrase |
+
+**Result: 70/70 (100.0%) — zero false positives, zero routing errors.**
+
+| Section | Score |
+|---------|-------|
+| Intent classification | 51/51 (100.0%) |
+| Tool pipeline | 7/7 (100.0%) |
+| Compound routing | 12/12 (100.0%) |
+| Intent latency | 0.00ms avg |
+| TTFS estimate | 1.37s (target ≤1.50s ✅) |
 
 ---
 
@@ -289,10 +321,11 @@ Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finaliz
 | T2 — Research audit (partial) | 1.5h | ~0.25h |
 | T3 — Session-end summary | 0.75h | ~0.75h |
 | T4 — Adversarial robustness testing | 2.0h | ~1.0h |
-| T5–T7 | 3.75h | 0h |
-| **Total** | **10.0h** | **~4.5h** |
+| T5 — Benchmark extension to 70 queries | 1.0h | ~0.5h |
+| T6–T7 | 2.75h | 0h |
+| **Total** | **10.0h** | **~5.0h** |
 
-T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 came in on estimate. T4 came in under estimate — zero fixes required, no unacceptable outcomes. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
+T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 and T5 came in on estimate. T4 came in under estimate — zero fixes required, no unacceptable outcomes. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
 
 ---
 

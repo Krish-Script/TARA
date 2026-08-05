@@ -13,8 +13,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | 🔄 Planned |
 | 0.29.0 | Project abstract + README + GitHub portfolio polish | Week 8 | 🔄 Planned |
+
+---
+
+## [0.28.0] - 2026-08-05
+
+### Changed
+- `tests/test_benchmark.py`: benchmark extended from 60 to 70 queries.
+  - `INTENT_TEST_CASES`: 43 → 51 cases. 8 new cases added under "Week 8 adversarial findings" section, derived from T4 results and demo dry run fixes. Documents confirmed routing behaviour for ambiguous inputs, buried triggers, fixed demo phrases, and the intentional RAM pattern gap (Finding 8).
+  - `COMPOUND_TEST_CASES`: 10 → 12 cases. 2 new positive cases: RAM variant of note_with_system_data chain, short-form system_status_snapshot trigger.
+  - `print_summary()` header updated: "WEEK 7" → "WEEK 8".
+
+### Testing
+- Benchmark result: 70/70 (100.0%) — zero false positives, zero routing errors.
+  - Intent classification: 51/51 (100.0%)
+  - Tool pipeline: 7/7 (100.0%)
+  - Compound routing: 12/12 (100.0%)
+  - Intent latency: 0.00ms avg
+  - TTFS estimate: 1.37s (target ≤1.50s ✅)
 
 ---
 
@@ -803,6 +820,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.25.0 | Demo dry run — VAD calibration, STT fixes, stem matching fix, 3 runs passing | Week 8 | ✅ Released |
 | 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | ✅ Released |
 | 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | ✅ Released |
+| 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

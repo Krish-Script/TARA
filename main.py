@@ -111,12 +111,11 @@ class TARA:
         print()
         print("=" * 55)
         print("  ╔═══════════════════════════════╗")
-        print("  ║   T A R A  v0.8.4  — Week 8   ║")
+        print("  ║   T A R A  v0.8.5  — Week 8   ║")
         print("  ║   Offline Voice AI Assistant  ║")
         print("  ╚═══════════════════════════════╝")
         print("=" * 55)
         print()
-
 
 if __name__ == "__main__":
     tara = TARA()

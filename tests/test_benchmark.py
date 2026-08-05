@@ -96,6 +96,18 @@ INTENT_TEST_CASES = [
     ("What's my CPU right now?",        Intent.SYSTEM_QUERY,  "compound neg — single metric not compound"),
     ("How is quantum computing done?",  Intent.CHAT,          "compound neg — how is not system"),
     ("List my notes",                   Intent.NOTES_LIST,    "compound neg — list not search chain"),
+
+    # ── Week 8 adversarial findings — confirmed routing behaviour ─
+    # These document routing decisions confirmed under adversarial
+    # testing (T4) and demo dry run (T1). Do not remove.
+    ("What's my memory?",                   Intent.CHAT,         "edge — memory gap (Finding 8, no 'usage' suffix)"),
+    ("Show me what you know.",              Intent.CHAT,         "edge — local search false pos (no possessive+topic)"),
+    ("What time does the file say?",        Intent.CHAT,         "edge — ambiguous time+file, falls to CHAT"),
+    ("What's my memory usage?",             Intent.SYSTEM_QUERY, "system — memory usage variant (contrast with edge above)"),
+    ("I need to check, what is my CPU usage right now?", Intent.SYSTEM_QUERY, "edge — buried trigger in long input"),
+    ("Take a note: meeting at 3pm.",        Intent.NOTES_CREATE, "notes — create with colon separator"),
+    ("Summarize the README file.",          Intent.FILE_READ,    "file — demo Q7 fixed phrase"),
+    ("What do you know about my demonstration?", Intent.LOCAL_SEARCH, "search — demo Q8 fixed phrase"),
 ]
 
 # ── Tool pipeline tests ──────────────────────────────────────
@@ -127,6 +139,9 @@ COMPOUND_TEST_CASES = [
     ("How is quantum computing done?",      None, "compound neg — how is general"),
     ("List my notes",                       None, "compound neg — list intent"),
     ("What do you know about Einstein?",    None, "compound neg — search false pos"),
+
+    ("Take a note with my current RAM usage", "note_with_system_data",  "compound pos — note with RAM variant"),
+    ("System status report",                  "system_status_snapshot", "compound pos — short form trigger"),
 ]
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -360,7 +375,7 @@ def print_summary(
     latency:          dict,
 ):
     print("\n" + "=" * 55)
-    print("  WEEK 7 BENCHMARK SUMMARY")
+    print("  WEEK 8 BENCHMARK SUMMARY")
     print("=" * 55)
 
     intent_pct   = intent_passes   / intent_total   * 100
