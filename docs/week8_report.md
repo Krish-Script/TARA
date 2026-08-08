@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 8 of 10
 
-**Status:** 🔄 In Progress (6/7 tasks complete — T1, T2, T3, T4, T5, T6 done)
+**Status:** ✅ Complete (7/7 tasks done)
 
 ---
 
@@ -19,14 +19,14 @@ Before T1 could begin, an instrumentation audit was conducted to verify that TTF
 ttfs = stt_latency + llm_latency + tts_result.synthesis_latency
 ```
 
-`stt_latency` is measured from `start = time.time()` at the top of `transcribe()`.
-`transcribe()` is called after `record_audio()` completes. `record_audio()` waits
-`silence_duration` seconds of silence after the user stops speaking before returning.
+- `stt_latency` is measured from `start = time.time()` at the top of `transcribe()`.
+- `transcribe()` is called after `record_audio()` completes. 
+- `record_audio()` waits`silence_duration` seconds of silence after the user stops speaking before returning.
 
 This means every TTFS measurement in Weeks 1–7 excludes the silence detection window.  
 User-perceived TTFS equals logged TTFS plus `silence_duration`.
 
-With `silence_duration=1.8s` (the prior default), user-perceived TTFS for the tool path was approximately 1.30s + 1.80s = 3.10s — not 1.30s as logged.
+With `silence_duration=1.8s` (the prior default), user-perceived TTFS for the tool path was approximately 1.30s + 1.80s = **3.10s** — not 1.30s as logged.
 
 **Fix:** Ambient noise floor measured across four diagnostic runs:
 
@@ -327,27 +327,37 @@ Verified against actual project tree. All files in README structure section conf
 
 ---
 
-## T7 Status: Not Started
+## T7 Status: Complete
 
-Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finalized — abstract findings section must use corrected post-fix numbers.
+`docs/project_abstract.md` created — 580 words across four sections.
+
+| Section | Target | Actual |
+|---------|--------|--------|
+| Problem statement | 80 words | 82 words |
+| What was built | 120 words | 118 words |
+| What was found | 200 words | 195 words |
+| Implications | 100 words | 105 words |
+
+All four findings (1, 2, 3, 5) stated in two sentences each with specific measured numbers. Privacy leads the problem statement as primary justification.
 
 ---
 
-## Hours Summary (Week 8 — partial)
+## Hours Summary (Week 8 — Final)
 
-| Task | Estimated | Actual (to date) |
-|------|-----------|-----------------|
+| Task | Estimated | Actual |
+|------|-----------|--------|
 | Pre-task: VAD calibration + instrumentation audit | — | ~0.5h |
 | T1 — Demo dry run (3 runs + fixes) | 1.5h | ~2.0h |
-| T2 — Research audit (partial) | 1.5h | ~0.25h |
+| T2 — Research audit | 1.5h | ~0.25h |
 | T3 — Session-end summary | 0.75h | ~0.75h |
 | T4 — Adversarial robustness testing | 2.0h | ~1.0h |
 | T5 — Benchmark extension to 70 queries | 1.0h | ~0.5h |
 | T6 — CHANGELOG + README + GitHub structure | 1.5h | ~1.25h |
-| T7 | 1.25h | 0h |
-| **Total** | **10.0h** | **~6.0h** |
+| T7 — Project abstract | 1.25h | ~0.75h |
+| **Total** | **10.0h** | **~7.0h** |
 
-T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 and T5 came in on estimate. T4 came in under estimate — zero fixes required, no unacceptable outcomes. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
+- T1 ran over estimate by 0.5h — three fix-and-rerun cycles required. T4 and T5 came in under estimate — zero fixes required in T4, clean first-run pass in T5.  
+- T2 came in significantly under estimate — VAD annotation and Finding 1 correction were straightforward once the measurement gap was identified. T7 under estimate — abstract written in one pass with no structural revision needed.
 
 ---
 

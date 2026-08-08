@@ -13,8 +13,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.30.0 | Final demo preparation + Week 9 polish | Week 9 | 🔄 Planned |
-| 0.31.0 | Final research write-up + project wrap | Week 10 | 🔄 Planned |
+| 0.31.0 | Final demo preparation + Week 9 polish | Week 9 | 🔄 Planned |
+| 0.32.0 | Final research write-up + project wrap | Week 10 | 🔄 Planned |
+
+---
+
+## [0.30.0] - 2026-08-08
+
+### Added
+- `docs/project_abstract.md`: project abstract — 580 words across four sections (problem statement, what was built, what was found, implications).
+  - All four selected findings (1, 2, 3, 5) stated in two sentences each with specific measured numbers from the project log.
+  - Privacy leads as primary justification for offline deployment.
+  - Technical description covers 7-stage pipeline, full technology stack, and complete capability set.
+
+### Documentation
+- `docs/week8_report.md`: T7 section completed. Status updated to 7/7 complete.
 
 ---
 
@@ -843,6 +856,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | ✅ Released |
 | 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | ✅ Released |
 | 0.29.0 | Demo script finalization — 3 runs passing, 100% benchmark, 15 adversarial cases | Week 8 | ✅ Released |
+| 0.30.0 | Project abstract — 580 words, 4 findings, privacy justification | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
