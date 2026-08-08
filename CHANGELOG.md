@@ -9,11 +9,32 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 8
+### Planned — Weeks 9–10
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.29.0 | Project abstract + README + GitHub portfolio polish | Week 8 | 🔄 Planned |
+| 0.30.0 | Final demo preparation + Week 9 polish | Week 9 | 🔄 Planned |
+| 0.31.0 | Final research write-up + project wrap | Week 10 | 🔄 Planned |
+
+---
+
+## [0.29.0] - 2026-08-08
+
+### Changed
+- `README.md`: full rewrite to reflect Week 8 state.
+  - Sprint updated: Week 6 → Week 8 of 10.
+  - Pipeline diagram updated: Stage 1.5 CompoundRouter added between Memory Context and Intent Detection.
+  - Performance table updated: Week 8 post-fix numbers replacing Week 6 pre-fix numbers. Chat path floor corrected from 2.90s to 3.00s.
+    VAD silence window (0.8s) noted explicitly.
+  - Capabilities table updated: compound chains, session-end summary, GPU temperature added as distinct capabilities.
+  - Project structure updated: compound_router.py, robustness_test.md, week8_report.md, setup.md added. Intent count corrected: 37 → 51.
+  - Core voice commands updated: session summary on goodbye, all Week 6–8 commands added.
+  - Known limitations updated: VAD window, chat floor, pattern gap added.
+  - Research findings section added: all 9 findings listed.
+  - Stale entries removed: "Clear memory" command removed (conversation_history removed in Week 7), LLM cold-start latency note removed.
+
+### Documentation
+- `docs/week8_report.md`: T6 section completed.
 
 ---
 
@@ -821,6 +842,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.26.0 | Session-end summary — goodbye trigger, spoken summary, session file save | Week 8 | ✅ Released |
 | 0.27.0 | Adversarial robustness testing — 15 inputs across 5 categories, fixes | Week 8 | ✅ Released |
 | 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | ✅ Released |
+| 0.29.0 | Demo script finalization — 3 runs passing, 100% benchmark, 15 adversarial cases | Week 8 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

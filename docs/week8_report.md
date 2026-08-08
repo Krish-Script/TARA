@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 8 of 10
 
-**Status:** 🔄 In Progress (5/7 tasks complete — T1, T2, T3, T4, T5 done)
+**Status:** 🔄 In Progress (6/7 tasks complete — T1, T2, T3, T4, T5, T6 done)
 
 ---
 
@@ -300,9 +300,30 @@ Finding 9 — keep_alive validation under rapid succession: TTFS decreased acros
 
 ---
 
-## T6 Status: In Progress
+## T6 Status: Complete
 
-CHANGELOG.md updated for Week 8 (version 0.25.0). GitHub README and folder structure review pending.
+### README Rewrite
+
+Full README.md rewrite. Seven stale items corrected:
+
+| Item | Before | After |
+|------|--------|-------|
+| Sprint | Week 6 of 10 | Week 8 of 10 |
+| Pipeline diagram | Missing Stage 1.5 | CompoundRouter at Stage 1.5 |
+| Chat path TTFS | 2.90s avg | 3.00s floor, 3.16s avg (post-fix) |
+| Tool path TTFS | ~1.37s avg | avg 1.42s, range 1.17–1.53s |
+| Intent count | 37-case dictionary | 51-case dictionary |
+| Missing capabilities | — | Compound chains, session summary, GPU temp |
+| Missing docs | — | robustness_test.md, week8_report.md, setup.md |
+
+VAD silence window documented explicitly in performance table. "Clear memory" command removed — `conversation_history` was removed in Week 7.
+
+### CHANGELOG
+Versions 0.25.0–0.29.0 added. [Unreleased] section updated with Weeks 9–10 plan.  
+Version history table updated through 0.29.0.
+
+### Folder Structure
+Verified against actual project tree. All files in README structure section confirmed present on disk. No stale references.
 
 ---
 
@@ -322,8 +343,9 @@ Project abstract (docs/project_abstract.md). Scheduled after T2 audit is finaliz
 | T3 — Session-end summary | 0.75h | ~0.75h |
 | T4 — Adversarial robustness testing | 2.0h | ~1.0h |
 | T5 — Benchmark extension to 70 queries | 1.0h | ~0.5h |
-| T6–T7 | 2.75h | 0h |
-| **Total** | **10.0h** | **~5.0h** |
+| T6 — CHANGELOG + README + GitHub structure | 1.5h | ~1.25h |
+| T7 | 1.25h | 0h |
+| **Total** | **10.0h** | **~6.0h** |
 
 T1 ran over estimate by 0.5h due to three fix-and-rerun cycles. T3 and T5 came in on estimate. T4 came in under estimate — zero fixes required, no unacceptable outcomes. The stem matching bug (Finding C) was not anticipated in the sprint plan and added one additional dry run cycle to T1.
 
