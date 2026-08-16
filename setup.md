@@ -131,7 +131,7 @@ With `.venv` active, run:
 python tests/test_stt.py
 ```
 
-You'll get 3 rounds. After each "🎤 Listening...", speak a sentence.
+You'll get 3 rounds. After each "🎤 Listening...", speak a sentence.  
 You should see your words appear on screen.
 
 **Write down the average latency number printed at the end.**
@@ -151,15 +151,14 @@ git commit -m "Week1 Day2: STT working, avg latency Xs"
 
 ## DAY 3 — Test LLM (~2 hours)
 
-Make sure Ollama is running (it usually starts automatically, but you can
-open the Ollama desktop app to confirm, or run `ollama serve` in a terminal).
+Make sure Ollama is running (it usually starts automatically, but you can open the Ollama desktop app to confirm, or run `ollama serve` in a terminal).
 
 With `.venv` active, run:
 ```
 python tests/test_llm.py
 ```
 
-You should see 3 questions answered by TARA in text.
+You should see 3 questions answered by TARA in text.  
 Also open **Task Manager → Performance → GPU** and check VRAM usage (~2 GB).
 
 **Write down the average LLM latency printed at the end.**
@@ -185,9 +184,8 @@ With `.venv` active, run:
 python tests/test_tts.py
 ```
 
-You should **hear** 3 phrases spoken aloud.
-The script also lists all available Windows voices — pick one you like
-and set `voice_index` in `config.py`.
+You should **hear** 3 phrases spoken aloud.  
+The script also lists all available Windows voices — pick one you like and set `voice_index` in `config.py`.
 
 ### ✅ Day 4 Git Commit
 ```

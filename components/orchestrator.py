@@ -424,6 +424,7 @@ class Orchestrator:
         Generate a spoken session summary on exit.
         LLM call is timeout-guarded — if it stalls, exits silently.
         Summary is saved to notes as a session record.
+        Uses actual conversation content, not session statistics.
         """
         def avg(lst): return sum(lst) / len(lst) if lst else 0.0
 
@@ -435,20 +436,41 @@ class Orchestrator:
         if total_turns == 0:
             return
 
-        all_ttfs    = self.stats["ttfs"] + self.stats["ttfs_tool"]
-        avg_ttfs    = avg(all_ttfs)
-        session_mins = (time.time() - self.stats["session_start"]) / 60
-
-        prompt = (
-            f"Summarise this assistant session in exactly one sentence. "
-            f"Plain spoken English only. No bullet points. No preamble.\n"
-            f"Session data: {total_turns} turns ({chat_turns} chat, "
-            f"{tool_turns} tool), {session_mins:.1f} minutes, "
-            f"average response time {avg_ttfs:.2f} seconds.\n"
-            f"Summary:"
+        # ── Build context from actual conversation turns ──
+        conversation_context = self.memory.get_context_for_llm(
+            session_id=self.session_id
         )
 
-        # ── Timeout guard ─────────────────────────────────────────────
+        # ── Fall back to stats if no conversation content available ──
+        # This happens in tool-heavy sessions where all turns are source="tool"
+        # and get_context_for_llm() returns an empty string.
+        if not conversation_context.strip():
+            all_ttfs     = self.stats["ttfs"] + self.stats["ttfs_tool"]
+            avg_ttfs     = avg(all_ttfs)
+            session_mins = (time.time() - self.stats["session_start"]) / 60
+            prompt = (
+                f"Summarise this assistant session in exactly one sentence. "
+                f"Plain spoken English only. No bullet points. No preamble.\n"
+                f"Session data: {total_turns} turns ({chat_turns} chat, "
+                f"{tool_turns} tool), {session_mins:.1f} minutes, "
+                f"average response time {avg_ttfs:.2f} seconds.\n"
+                f"Summary:"
+            )
+        else:
+            prompt = (
+                f"Summarise what was discussed or accomplished in this conversation "
+                f"in exactly one sentence. Plain spoken English only. No bullet points. "
+                f"No markdown. This will be spoken aloud.\n"
+                f"Focus on topics covered and actions taken — not on response times "
+                f"or turn counts.\n"
+                f"Example: \"Today we checked your system performance, saved a note "
+                f"about the project demonstration, and discussed how large language "
+                f"models work.\"\n\n"
+                f"Conversation:\n{conversation_context}\n"
+                f"Summary:"
+            )
+
+        # ── Timeout guard ──
         summary_text = None
         try:
             from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
@@ -464,13 +486,13 @@ class Orchestrator:
         if not summary_text:
             return
 
-        # ── Speak summary ─────────────────────────────────────────────
+        # ── Speak summary ──
         try:
             self.tts.speak(summary_text)
         except Exception as e:
             error_logger.warning(f"Session summary TTS failed: {e}")
 
-        # ── Save to notes ─────────────────────────────────────────────
+        # ── Save to notes ──
         try:
             from components.intent import Intent
             self.tool_registry.dispatch(

@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 9 of 10
 
-**Status:** 🔄 In Progress (1/7 tasks complete)
+**Status:** 🔄 In Progress (2/7 tasks complete)
 
 ---
 
@@ -26,12 +26,26 @@ Opened `docs/research_notes.md` and located the "What Has Not Been Measured" sec
 
 ---
 
-## T2 Status: 🔄 Pending
+## T2 Status: ✅ Complete
 
-**Session Summary: Fix Content vs Statistics**
-*Estimate: 1.0h*
+### Session Summary: Fix Content vs Statistics
 
-Not started. Fix is in `_generate_session_summary()` in `orchestrator.py` — replace statistics block with `get_context_for_llm()` call returning actual turn text. Prompt template and three-session validation procedure defined in sprint plan.
+**Estimate:** 1.0h | **Actual:** ~1.0h
+
+Replaced stats-based prompt in `_generate_session_summary()` with `get_context_for_llm(session_id=self.session_id)` call returning actual conversation turns. Added fallback to stats-based prompt for tool-only sessions where `get_context_for_llm()` returns empty string (source_filter="chat" excludes tool turns).
+
+**Validation — three session types:**
+
+| Session | Type | Summary spoken | Pass |
+|---------|------|---------------|------|
+| A | Mixed (chat + note + tool) | Described ML topic and note creation | ✅ |
+| B | Chat only | Named all three topics discussed | ✅ |
+| C | Tool only | Stats fallback — acceptable, no crash | ✅ |
+
+**Known limitation:** Tool-only sessions hit the stats fallback because `get_context_for_llm()` filters to `source="chat"` only. Correct fix requires a separate `get_tool_turns_for_llm()` method — out of scope for Week 9. Fallback produces a functional summary rather than silence.
+
+#### components/orchestrator.py
+- `_generate_session_summary()`: replaced stats prompt with `get_context_for_llm()` call. Added empty-context fallback. Added few-shot example to content prompt for natural spoken output.
 
 ---
 
@@ -85,13 +99,13 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 | Task | Estimated | Actual |
 |------|-----------|--------|
 | T1 — "What Has Not Been Measured" rationale | 0.75h | ~0.5h |
-| T2 — Session summary fix | 1.0h | — |
+| T2 — Session summary fix | 1.0h | ~1.0h |
 | T3 — VAD correction propagation | 1.5h | — |
 | T4 — Research notes final audit | 1.5h | — |
 | T5 — Cold-boot benchmark | 0.75h | — |
 | T6 — Version 1.0.0 release | 0.75h | — |
 | T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~0.5h** |
+| **Total** | **7.25h** | **~1.5h** |
 
 ---
 
