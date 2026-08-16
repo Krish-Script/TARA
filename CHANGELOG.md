@@ -9,12 +9,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Weeks 9–10
+### Planned — Week 9–10
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.31.0 | Final demo preparation + Week 9 polish | Week 9 | 🔄 Planned |
-| 0.32.0 | Final research write-up + project wrap | Week 10 | 🔄 Planned |
+| 0.32.0 | Session summary content fix | Week 9 | 🔄 Planned |
+| 0.33.0 | VAD correction — research notes + abstract | Week 9 | 🔄 Planned |
+| 0.34.0 | Research notes final audit | Week 9 | 🔄 Planned |
+| 0.35.0 | Cold-boot benchmark + demo Run 4 | Week 9 | 🔄 Planned |
+| 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+
+---
+
+## [0.31.0] - 2026-08-16
+
+### Documentation
+- `docs/research_notes.md`: added explicit rationale paragraphs for all three unmeasured research questions.
+  - Question 1 (VRAM/format Pareto frontier): hardware constraint documented — one GPU, one parameter count evaluated. Six data points across two VRAM budgets identified as minimum for a meaningful Pareto curve. Model selection characterised as defensible but not optimal.
+  - Question 2 (memory injection at scale): scripted session generation identified as the required measurement method. 600-token ceiling guard noted as managed risk mitigation. Long-running deployment identified as the scenario where this measurement becomes the first priority.
+  - Question 3 (STT domain vocabulary): labelled test set of 50+ terms identified as requirement. Reactive dictionary construction documented. Near-completeness hypothesis stated with explicit caveat that it is not statistically supported beyond four observed cases.
 
 ---
 
@@ -857,6 +870,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.28.0 | Benchmark extension — 70 queries at 100%, adversarial routing cases | Week 8 | ✅ Released |
 | 0.29.0 | Demo script finalization — 3 runs passing, 100% benchmark, 15 adversarial cases | Week 8 | ✅ Released |
 | 0.30.0 | Project abstract — 580 words, 4 findings, privacy justification | Week 8 | ✅ Released |
+| 0.31.0 | Unmeasured research gaps — rationale added for all 3 open questions | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
