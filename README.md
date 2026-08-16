@@ -170,7 +170,7 @@ D:\TARA\
 │   ├── known_limitations.md        # Documented limitations with root causes
 │   ├── robustness_test.md          # Adversarial test log — 15/15 pass
 │   ├── roadmap.md
-│   ├── model_eval.md
+│   ├── model_evaluation.txt
 │   └── week1_report.md → week8_report.md
 │
 ├── data\

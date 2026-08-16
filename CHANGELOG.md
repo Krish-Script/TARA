@@ -13,11 +13,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.32.0 | Session summary content fix | Week 9 | 🔄 Planned |
 | 0.33.0 | VAD correction — research notes + abstract | Week 9 | 🔄 Planned |
 | 0.34.0 | Research notes final audit | Week 9 | 🔄 Planned |
 | 0.35.0 | Cold-boot benchmark + demo Run 4 | Week 9 | 🔄 Planned |
 | 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+
+---
+
+## [0.32.0] - 2026-08-16
+
+### Fixed
+- `components/orchestrator.py`: `_generate_session_summary()` now passes actual conversation content to the LLM rather than session statistics.
+  - `get_context_for_llm(session_id=self.session_id)` replaces stats block.
+  - Few-shot example added to prompt for natural spoken output.
+  - Fallback to stats-based prompt retained for tool-only sessions where content context is empty.
+
+### Documentation
+- `docs/week9_report.md`: T2 section completed.
 
 ---
 
@@ -871,6 +883,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.29.0 | Demo script finalization — 3 runs passing, 100% benchmark, 15 adversarial cases | Week 8 | ✅ Released |
 | 0.30.0 | Project abstract — 580 words, 4 findings, privacy justification | Week 8 | ✅ Released |
 | 0.31.0 | Unmeasured research gaps — rationale added for all 3 open questions | Week 9 | ✅ Released |
+| 0.32.0 | Session summary content fix — speaks topics discussed, not response times | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
