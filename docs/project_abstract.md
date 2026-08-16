@@ -19,8 +19,8 @@ TARA (Totally Autonomous Responsive Assistant) is a fully offline, voice-control
 
 ## What Was Found
 
-**Finding 1 — Tool routing reduces TTFS by 58%.**
-Keyword-based intent routing achieves a 1.25s tool path TTFS versus a 3.00s chat path floor on the same hardware — a 58% reduction. Intent classification runs in under 0.01ms with 100% accuracy across 70 benchmark queries, outperforming LLM-based classification on both latency and correctness.
+**Finding 1 — Tool routing reduces TTFS by 58% (logged) and 46% (user-perceived).**
+Keyword-based intent routing achieves a 1.25s logged tool path TTFS versus a 3.00s logged chat path floor on the same hardware — a 58% reduction. Including the 0.8s VAD silence window, user-perceived latency is 2.05s (tool path) versus 3.80s (chat path) — a 46% reduction. Intent classification runs in under 0.01ms with 100% accuracy across 70 benchmark queries, outperforming LLM-based classification on both latency and correctness.
 
 **Finding 2 — Response length predicts TTFS better than generation speed.**
 qwen2.5:3b produced 24.4-word average responses at 0.85s generation versus llama3.2:3b's 29.0 words at 0.93s — the 4.6-word reduction saved approximately 92ms in TTS synthesis, producing lower end-to-end TTFS despite slower generation. Standard tokens-per-second benchmarks do not capture this tradeoff.

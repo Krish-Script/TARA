@@ -25,7 +25,7 @@ invoked. Intent accuracy measured at 60/60 (100%) on the full benchmark suite.
 
 **Implication:** For voice assistants on resource-constrained hardware, separating deterministic tool queries from generative chat queries is not an optimisation — it is the architecture. The TTFS difference (58%, well above the 300ms perceptible lag threshold) is user-visible on every query. The tool routing advantage is not merely a latency benefit: it also entirely bypasses the dual-injection failure mode that caused chat TTFS to grow with session length (Finding 5). The accuracy difference is a correctness guarantee: tools return measured values; LLMs return statistically plausible completions.
 
-*Note: The 45% figure cited in earlier versions of this finding used pre-fix chat TTFS (2.30s). The correct post-fix figure is 58% (1.25s vs 3.00s). The conclusion is stronger, not weaker, under corrected numbers.*
+*Note: The 45% figure cited in earlier versions of this finding used pre-fix chat TTFS (2.30s). The correct post-fix figure is 58% (1.25s vs 3.00s). User-perceived TTFS reduction is 46% (2.05s vs 3.80s) when the 0.8s VAD window is included. Both figures are accurate and measure different things — logged pipeline reduction and user-perceived reduction respectively. The conclusion is stronger, not weaker, under corrected numbers.*
 
 ---
 
@@ -141,6 +141,18 @@ TTFS decreased across the sequence. No latency spike, no reload overhead between
 **Mechanism:** keep_alive="5m" holds the model loaded in VRAM for 5 minutes after the last inference call. Back-to-back queries within that window skip the model loading step entirely. The decreasing TTFS reflects warm VRAM state and consistent STT latency on short inputs (0.58–0.68s).
 
 **Implication:** For demo conditions where queries arrive in rapid succession, keep_alive="5m" is the correct setting. This directly validates the Week 7 decision to reject keep_alive=0, which added 4–6s reload overhead per turn and was measured and rejected as a TTFS regression fix hypothesis. The keep_alive setting is a demo-critical configuration parameter, not a minor tuning detail.
+
+---
+
+## Finding 10 — VAD Configuration as a User-Perceived Latency Lever
+
+**Finding:** A miscalibrated VAD silence window of 1.8s added 1.0s of user-perceived latency to every query path throughout the project. Recalibrating to 0.8s — matching the measured ambient noise floor — produced a 1.0s user-perceived improvement with no model changes, no pipeline changes, and no architectural changes.
+
+**Evidence:** Ambient noise floor measured across four diagnostic runs (Week 8): mean amplitude 1.5 vs configured silence threshold of 300 — a 200× margin, confirming the default was significantly overcalibrated for a quiet room with close-mic setup. `silence_duration` reduced from 1.8s to 0.8s. Mid-sentence pause test confirmed no clipping at 0.8s. User-perceived TTFS before recalibration: tool path ~3.10s (1.30s logged + 1.8s VAD), chat path ~4.80s (3.00s logged + 1.8s VAD). After recalibration: tool path ~2.05s (1.25s logged + 0.8s VAD), chat path ~3.80s (3.00s logged + 0.8s VAD).
+
+**Mechanism:** VAD silence detection waits for a fixed period of silence after the user stops speaking before returning audio to the STT module. This wait is experienced by the user as dead time between finishing speaking and hearing any response — but it is not included in the pipeline TTFS formula (STT + LLM + TTS). The formula measures from the moment audio is handed to STT, not from the moment the user stops speaking. The miscalibration was therefore invisible in all logged measurements across Weeks 1–7 and only surfaced during the Week 8 instrumentation audit ahead of the demo dry run.
+
+**Implication:** Voice interface deployment should measure and calibrate VAD parameters against the actual acoustic environment before benchmarking or reporting latency figures. Default silence thresholds designed for general environments may be significantly overcalibrated for quiet rooms with close-mic setups. A 1.0s user-perceived improvement achieved through configuration alone — with zero pipeline changes — demonstrates that VAD calibration is a first-order latency concern, not a post-optimisation detail. Any TTFS benchmark that excludes the VAD window reports pipeline latency, not user-perceived latency; both values should be stated explicitly.
 
 ---
 

@@ -13,10 +13,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.33.0 | VAD correction — research notes + abstract | Week 9 | 🔄 Planned |
 | 0.34.0 | Research notes final audit | Week 9 | 🔄 Planned |
 | 0.35.0 | Cold-boot benchmark + demo Run 4 | Week 9 | 🔄 Planned |
 | 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+
+---
+
+## [0.33.0] - 2026-08-16
+
+### Added
+- `docs/research_notes.md`: Finding 10 — VAD Configuration as a User-Perceived Latency Lever. Full F/E/M/I structure. Evidence cites four ambient noise diagnostic runs, before/after silence_duration values, and user-perceived TTFS across both paths.
+
+### Changed  
+- `docs/project_abstract.md`: Finding 1 updated to include both logged (58%, 1.25s vs 3.00s) and user-perceived (46%, 2.05s vs 3.80s) TTFS reduction values.
+- `docs/research_notes.md`: Finding 1 note updated to reference both logged and user-perceived percentages explicitly.
+
+### Documentation
+- `docs/week9_report.md`: T3 section completed.
 
 ---
 
@@ -884,6 +897,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.30.0 | Project abstract — 580 words, 4 findings, privacy justification | Week 8 | ✅ Released |
 | 0.31.0 | Unmeasured research gaps — rationale added for all 3 open questions | Week 9 | ✅ Released |
 | 0.32.0 | Session summary content fix — speaks topics discussed, not response times | Week 9 | ✅ Released |
+| 0.33.0 | VAD correction propagated — Finding 10 added, abstract Finding 1 updated with user-perceived latency | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

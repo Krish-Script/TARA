@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 9 of 10
 
-**Status:** 🔄 In Progress (2/7 tasks complete)
+**Status:** 🔄 In Progress (3/7 tasks complete)
 
 ---
 
@@ -49,12 +49,25 @@ Replaced stats-based prompt in `_generate_session_summary()` with `get_context_f
 
 ---
 
-## T3 Status: 🔄 Pending
+## T3 Status: ✅ Complete
 
-**VAD Correction: Propagate to Research Findings and Abstract**
-*Estimate: 1.5h*
+### VAD Correction: Propagate to Research Findings and Abstract
 
-Not started. Requires: Finding 10 written in `docs/research_notes.md` with F/E/M/I structure; Finding 1 in `docs/project_abstract.md` updated to include both logged (58%) and user-perceived (46%) TTFS reduction values; measurement integrity preamble confirmed accurate.
+**Estimate:** 1.5h | **Actual:** ~1.0h
+
+**Changes made:**
+
+#### docs/research_notes.md
+- **Finding 10 added** — VAD Configuration as a User-Perceived Latency Lever. Full F/E/M/I structure:
+  - Finding: 1.8s VAD window added 1.0s user-perceived latency to every query path. Recalibration to 0.8s produced 1.0s improvement with no pipeline or model changes.
+  - Evidence: Four ambient noise diagnostic runs (Week 8), mean amplitude 1.5 vs threshold 300 (200× margin). User-perceived tool path: 3.10s → 2.05s. Chat path: 4.80s → 3.80s.
+  - Mechanism: VAD silence window is experienced as dead time by the user but excluded from the pipeline TTFS formula — invisible in all logged measurements across Weeks 1–7.
+  - Implication: VAD calibration against the actual acoustic environment is a first-order latency concern. Both logged and user-perceived TTFS values should be stated explicitly in any voice interface benchmark.
+- **Finding 1 note updated** — user-perceived reduction (46%, 2.05s vs 3.80s) added alongside existing logged reduction note (58%, 1.25s vs 3.00s).
+- **Measurement integrity preamble** — confirmed accurate and complete. No changes required.
+
+#### docs/project_abstract.md
+- **Finding 1 updated** — now states both logged TTFS reduction (58%, 1.25s vs 3.00s) and user-perceived reduction (46%, 2.05s vs 3.80s) with explicit VAD window attribution.
 
 ---
 
@@ -100,12 +113,12 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 |------|-----------|--------|
 | T1 — "What Has Not Been Measured" rationale | 0.75h | ~0.5h |
 | T2 — Session summary fix | 1.0h | ~1.0h |
-| T3 — VAD correction propagation | 1.5h | — |
+| T3 — VAD correction propagation | 1.5h | ~1.0h |
 | T4 — Research notes final audit | 1.5h | — |
 | T5 — Cold-boot benchmark | 0.75h | — |
 | T6 — Version 1.0.0 release | 0.75h | — |
 | T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~1.5h** |
+| **Total** | **7.25h** | **~2.5h** |
 
 ---
 
