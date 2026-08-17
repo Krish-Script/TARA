@@ -13,9 +13,18 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.34.0 | Research notes final audit | Week 9 | 🔄 Planned |
 | 0.35.0 | Cold-boot benchmark + demo Run 4 | Week 9 | 🔄 Planned |
 | 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+
+---
+
+## [0.34.0] - 2026-08-17
+
+### Changed
+- `docs/research_notes.md`: Finding 7 Evidence annotated with logged vs user-perceived TTFS distinction for all three compound chain measurements.
+
+### Documentation
+- `docs/week9_report.md`: T4 section completed.
 
 ---
 
@@ -898,6 +907,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.31.0 | Unmeasured research gaps — rationale added for all 3 open questions | Week 9 | ✅ Released |
 | 0.32.0 | Session summary content fix — speaks topics discussed, not response times | Week 9 | ✅ Released |
 | 0.33.0 | VAD correction propagated — Finding 10 added, abstract Finding 1 updated with user-perceived latency | Week 9 | ✅ Released |
+| 0.34.0 | Research notes audit complete — all 10 findings verified, Finding 7 VAD annotation added | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
