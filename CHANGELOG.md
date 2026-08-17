@@ -13,8 +13,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 | Version | Description | Week | Status |
 |---------|-------------|------|--------|
-| 0.35.0 | Cold-boot benchmark + demo Run 4 | Week 9 | 🔄 Planned |
 | 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+
+---
+
+## [0.35.0] - 2026-08-17
+
+### Documentation
+- `docs/week9_report.md`: T5 section completed. Cold-boot benchmark result logged with full system state documentation.
+- `README.md`: performance table updated with cold-boot benchmark run date (Mon Aug 17 2026).
+
+### Verified
+- 70/70 benchmark accuracy confirmed from cold boot (0MiB VRAM, no prior processes, 37°C GPU temp).
+- Demo sequence Run 4 completed from cold boot. No regressions vs Run 3. Query 1 cold-boot variance (3.63s) documented and explained.
 
 ---
 
@@ -908,6 +919,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.32.0 | Session summary content fix — speaks topics discussed, not response times | Week 9 | ✅ Released |
 | 0.33.0 | VAD correction propagated — Finding 10 added, abstract Finding 1 updated with user-perceived latency | Week 9 | ✅ Released |
 | 0.34.0 | Research notes audit complete — all 10 findings verified, Finding 7 VAD annotation added | Week 9 | ✅ Released |
+| 0.35.0 | Cold-boot benchmark 70/70 confirmed, demo Run 4 complete — definitive published result | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

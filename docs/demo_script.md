@@ -207,3 +207,17 @@ phrases and their corrected alternates for your accent specifically.
 | 8 | 1.26s | You saved notes that state you demonstrated TARA today. | |
 | 9 | 1.22s | That's 51. | |
 | 10 | 3.08s | A large language model is a type of artificial intelligence designed to understand and generate human-like text, typically trained on vast amounts of text data. | |
+
+## Dry Run Log — Run 4
+| Query | Actual TTFS | STT Output | Notes |
+|-------|------------|------------|-------|
+| 1 | 3.63s | My name is TARA. | |
+| 2 | 1.53s | It's 08:58 PM on Monday, August 17, 2026. | |
+| 3 | 1.78s | CPU is at 56.0 percent, RAM is 10.8 of 15.7 gigabytes, and disk is 72.7 percent full. | |
+| 4 | 1.26s | GPU temperature is 40 degrees Celsius. | |
+| 5 | 1.52s | Take a note, I demonstrated TARA today. | |
+| 6 | 1.41s | Your last note says: I demonstrated TARA today. | |
+| 7 | 2.09s | The file README.md is quite long, so here is a summary: This is about an AI assistant named TARA that works offline without needing internet and has various functions like remembering things you say, answering questions about tech stuff, checking system stats and more. | |
+| 8 | 1.32s | You saved notes that state you demonstrated TARA today. | |
+| 9 | 1.17s | That's 51. | |
+| 10 | 3.43s | A large language model is an AI designed to understand and generate human-like text, trained extensively on massive datasets. | |
