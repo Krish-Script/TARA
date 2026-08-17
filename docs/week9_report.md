@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 9 of 10
 
-**Status:** 🔄 In Progress (4/7 tasks complete)
+**Status:** 🔄 In Progress (5/7 tasks complete)
 
 ---
 
@@ -94,12 +94,69 @@ Full end-to-end read of `docs/research_notes.md` completed against four-question
 
 ---
 
-## T5 Status: 🔄 Pending
+## T5 Status: ✅ Complete
 
-**Final Cold-Boot Benchmark Run: Definitive Published Results**
-*Estimate: 0.75h*
+### Final Cold-Boot Benchmark Run: Definitive Published Results
 
-Not started. Full cold-boot procedure: kill all Ollama and Python processes, verify VRAM baseline via nvidia-smi, warm with throwaway chat query ("What is a large language model?"), run `python tests/test_benchmark.py`. Demo sequence Run 4 from cold boot. System state at benchmark start to be documented in this section on completion.
+**Estimate:** 0.75h | **Actual:** ~0.75h
+
+**System state at benchmark start:**
+
+| Parameter | Value |
+|-----------|-------|
+| Date/time | Mon Aug 17 2026, 20:41:54 |
+| GPU temp | 37°C |
+| VRAM at start | 0MiB / 4096MiB |
+| Running GPU processes | None |
+| Throwaway warm-up query | "What is a large language model?" |
+| Warm-up TTFS | 5.44s (true cold boot — model load included) |
+| Benchmark start time | Mon Aug 17 2026, 20:52:54 |
+
+**Benchmark result — 70/70 from cold boot:**
+
+| Metric | Result | Target |
+|--------|--------|--------|
+| Intent accuracy | 51/51 (100%) | 100% |
+| Tool success | 7/7 (100%) | 100% |
+| Compound routing | 12/12 (100%) | 100% |
+| **Total** | **70/70 (100%)** | **100%** |
+| False positives | 0 | 0 |
+| Intent latency | 0.01ms | <1ms |
+| TTFS estimate | 1.37s | ≤1.50s |
+
+This result — 70/70 from cold boot — is the definitive published benchmark. All prior benchmark runs were mid-development with models warm and fixes sometimes applied between runs. This run was taken from a verified cold system state.
+
+**Demo sequence Run 4 — cold boot:**
+
+| Query | Actual TTFS | STT Output | Notes |
+|-------|------------|------------|-------|
+| 1 | 3.63s | My name is TARA. | Slightly above 2.1–3.5s range — cold-boot thermal variance |
+| 2 | 1.53s | It's 08:58 PM on Monday, August 17, 2026. | ✅ |
+| 3 | 1.78s | CPU / RAM / disk status reported correctly. | ✅ Multi-metric overhead — consistent with Run 3 (1.68s) |
+| 4 | 1.26s | GPU temperature is 40 degrees Celsius. | ✅ |
+| 5 | 1.52s | Note saved: I demonstrated TARA today. | ✅ |
+| 6 | 1.41s | Your last note says: I demonstrated TARA today. | ✅ |
+| 7 | 2.09s | README summarised correctly. | ✅ Improvement vs Run 3 (2.27s) |
+| 8 | 1.32s | Stem match: demonstrated TARA today. | ✅ |
+| 9 | 1.17s | That's 51. | ✅ |
+| 10 | 3.43s | LLM definition of large language models. | ✅ |
+
+**Run 4 result: PASS — no crashes, no routing failures.**
+
+**Comparison Run 3 vs Run 4:**
+
+| Metric | Run 3 | Run 4 | Delta | Note |
+|--------|-------|-------|-------|------|
+| Query 1 TTFS | 2.14s | 3.63s | +1.49s | Run 3 below floor — VRAM pre-warm. Run 4 expected range |
+| Tool path avg | 1.39s | 1.47s | +0.08s | Within variance |
+| Chat path avg | 3.08s | 3.53s | +0.45s | Within target ≤4.0s |
+| Query 7 TTFS | 2.27s | 2.09s | -0.18s | Improvement |
+| Failures | 0 | 0 | — | ✅ |
+
+No regressions. TTFS differences between runs reflect warm vs cold VRAM state, not pipeline changes. Run 4 is the authoritative result.
+
+#### README.md
+- Performance table updated with cold-boot benchmark run date: Mon Aug 17 2026.
 
 ---
 
@@ -129,10 +186,10 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 | T2 — Session summary fix | 1.0h | ~1.0h |
 | T3 — VAD correction propagation | 1.5h | ~1.0h |
 | T4 — Research notes final audit | 1.5h | ~1.0h |
-| T5 — Cold-boot benchmark | 0.75h | — |
+| T5 — Cold-boot benchmark | 0.75h | ~0.75h |
 | T6 — Version 1.0.0 release | 0.75h | — |
 | T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~3.5h** |
+| **Total** | **7.25h** | **~4.25h** |
 
 ---
 

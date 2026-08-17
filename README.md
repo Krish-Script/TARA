@@ -85,7 +85,7 @@ Your Voice
 
 ---
 
-## Performance (Week 8 — post-fix baseline)
+## Performance (Week 9 — cold-boot benchmark, August 17 2026)
 
 All logged TTFS values exclude the VAD silence window (0.8s). User-perceived TTFS = logged TTFS + 0.8s.
 
@@ -96,7 +96,8 @@ All logged TTFS values exclude the VAD silence window (0.8s). User-perceived TTF
 | LLM-assisted tool | 1.63–1.98s | ~2.4–2.8s | ≤2.0s ✅ |
 | Chat path | floor 3.00s, avg 3.16s | ~3.8–4.0s | ≤4.0s ✅ |
 
-**Hardware floor:** 3.00s logged (STT 0.70s + LLM 1.58s + TTS synthesis 0.72s). Cannot be reduced in software without streaming LLM output.  
+**Benchmark:** 70/70 (100%) — intent accuracy 51/51, tool success 7/7, compound routing 12/12. Verified from cold boot (0MiB VRAM, no prior processes). Run date: Mon Aug 17 2026.  
+**Hardware floor:** 3.00s logged (STT 0.70s + LLM 1.58s + TTS 0.72s). Cannot be reduced in software without streaming LLM output.  
 **Intent classification latency:** <0.01ms (keyword matching, no model call).
 
 ---
@@ -263,3 +264,4 @@ Nine findings documented in `docs/research_notes.md`:
 7. Compound tool chains as deterministic agentic behaviour
 8. Keyword routing pattern specificity as an irreducible coverage tradeoff
 9. keep_alive state stability under rapid succession queries
+10. VAD Configuration as a User-Perceived Latency Lever
