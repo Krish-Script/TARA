@@ -106,6 +106,8 @@ An earlier hypothesis attributed TTFS regression to tool-response context inject
 
 All three outperform the chat path floor of 3.00s and match or beat the single-tool no-LLM path target of ≤1.60s (Chain 1 at 1.85s is the sole exception, within the compound target of ≤2.0s). Week 8 dry run confirmed Chain 1 at 1.67–1.68s under real demo conditions.
 
+*Measurement note: All TTFS values above are logged pipeline measurements (STT + LLM + TTS). User-perceived TTFS = logged TTFS + 0.8s VAD window. User-perceived compound chain latency: Chain 1 ~2.65s, Chain 2 ~2.25s, Chain 3 ~2.39s. All three remain below the chat path user-perceived floor of 3.80s.*
+
 **Mechanism:** Compound chains execute as a predefined sequence of deterministic tool calls with template-based output synthesis. No LLM planning, no LLM synthesis for Chains 1 and 3. The CompoundRouter runs before IntentDetector in the pipeline, matching specific multi-word phrases before single-intent routing fires.
 
 **Implication:** Agentic multi-step behaviour on edge hardware does not require LLM orchestration. For a well-defined set of compound queries, keyword-triggered deterministic chains produce lower latency, higher reliability, and predictable output compared to LLM-planned execution. The design tradeoff is expressiveness: deterministic chains only handle anticipated compound patterns, not arbitrary multi-step requests. This is acceptable for a voice assistant with a defined capability set.

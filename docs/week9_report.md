@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 9 of 10
 
-**Status:** 🔄 In Progress (3/7 tasks complete)
+**Status:** 🔄 In Progress (4/7 tasks complete)
 
 ---
 
@@ -71,12 +71,26 @@ Replaced stats-based prompt in `_generate_session_summary()` with `get_context_f
 
 ---
 
-## T4 Status: 🔄 Pending
+## T4 Status: ✅ Complete
 
-**Research Notes Final Audit: Completeness and Coherence**
-*Estimate: 1.5h (adjusted mentally to 2.0h — T1 and T3 both modify docs/research_notes.md before this audit runs)*
+### Research Notes Final Audit: Completeness and Coherence
 
-Not started. Full end-to-end read of `docs/research_notes.md` against four-question checklist per finding. Targeted review of Findings 2, 7, 8, 9. Final finding count to be confirmed at 10 (9 active, 1 superseded).
+**Estimate:** 1.5h (adjusted to 2.0h) | **Actual:** ~1.0h
+
+Full end-to-end read of `docs/research_notes.md` completed against four-question checklist.
+
+**Findings reviewed:**
+- All 9 active findings contain at least one specific measured number in Evidence. Finding 8 evidence cites routing correctness boundary cases rather than timing — appropriate for the finding type.
+- Finding 2: dual-injection annotation confirmed present and accurate.
+- Finding 7: VAD measurement note added — logged vs user-perceived distinction now explicit for all three compound chain values.
+- Findings 8 and 9: confirmed F/E/M/I standard.
+- Finding 4: confirmed labeled as superseded with reason.
+
+**Finding count confirmed:** 10 total (9 active, 1 superseded).  
+**Unmeasured gaps confirmed:** 3, each with explicit rationale paragraph.
+
+#### docs/research_notes.md
+- Finding 7 Evidence: VAD measurement note added citing logged vs user-perceived values for all three compound chains.
 
 ---
 
@@ -114,11 +128,11 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 | T1 — "What Has Not Been Measured" rationale | 0.75h | ~0.5h |
 | T2 — Session summary fix | 1.0h | ~1.0h |
 | T3 — VAD correction propagation | 1.5h | ~1.0h |
-| T4 — Research notes final audit | 1.5h | — |
+| T4 — Research notes final audit | 1.5h | ~1.0h |
 | T5 — Cold-boot benchmark | 0.75h | — |
 | T6 — Version 1.0.0 release | 0.75h | — |
 | T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~2.5h** |
+| **Total** | **7.25h** | **~3.5h** |
 
 ---
 
