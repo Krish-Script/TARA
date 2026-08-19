@@ -9,11 +9,51 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-### Planned — Week 9–10
+No planned versions. Project complete at v1.0.0.
 
-| Version | Description | Week | Status |
-|---------|-------------|------|--------|
-| 1.0.0 | Project complete — milestone release | Week 9 | 🔄 Planned |
+---
+
+## [1.0.0] - 2026-08-19
+
+### Milestone: Project Complete
+
+All stated project objectives implemented, tested, and documented.
+
+### Summary
+
+- 12 functional requirements: all implemented (Weeks 1–6)
+- 70/70 benchmark: 100% accuracy from cold boot (August 17 2026)
+- 10-query demo sequence: passed (Run 3 August 02, Run 4 August 17 2026)
+- 10 research findings: documented with F/E/M/I structure
+- Hardware floor confirmed: 3.00s logged TTFS (3.80s user-perceived)
+- Tool path TTFS: 1.25s logged (2.05s user-perceived)
+- Known limitations: 8 documented with root cause and fix status
+- GitHub repository: public at v1.0.0
+
+### Added (Weeks 7–9)
+- CompoundRouter (Stage 1.5): three compound chains
+- Session-end summary with LLM content generation and 5s timeout guard
+- Three-run demo dry run with documented failure modes and fixes
+- Adversarial robustness test suite: 15/15 pass
+- VAD recalibration: 1.8s → 0.8s (1.0s user-perceived TTFS improvement)
+- Finding 10: VAD Configuration as a User-Perceived Latency Lever
+- `docs/robustness_test.md`, `docs/project_abstract.md`, `docs/demo_script.md`
+- `docs/week10_checklist.md`: pre-demo, documentation, and portfolio checklists
+
+### Fixed (Weeks 7–9)
+- Dual memory injection (conversation_history removed from llm.py)
+- Cross-session context injection (session_id=None in build_context())
+- Missing source column in conversations table
+- LOCAL_SEARCH stem matching (exact substring → 6-char prefix stem)
+- STT corrections: tharal→TARA, taral→TARA, redmi→README
+- Session summary now speaks conversation content, not performance statistics
+
+### Known Limitations (see docs/known_limitations.md)
+- CPU temperature unavailable on Windows without third-party drivers
+- LLM creative/persona prompts exceed one-sentence constraint
+- STT domain vocabulary error rate uncharacterised beyond observed cases
+- Session summary falls back to stats for tool-only sessions
+- Tool-only session summaries use stats fallback (source filter excludes tool turns)
 
 ---
 
@@ -920,6 +960,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.33.0 | VAD correction propagated — Finding 10 added, abstract Finding 1 updated with user-perceived latency | Week 9 | ✅ Released |
 | 0.34.0 | Research notes audit complete — all 10 findings verified, Finding 7 VAD annotation added | Week 9 | ✅ Released |
 | 0.35.0 | Cold-boot benchmark 70/70 confirmed, demo Run 4 complete — definitive published result | Week 9 | ✅ Released |
+| 1.0.0 | Project complete — 70/70 benchmark, 10 findings, public repository | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*
