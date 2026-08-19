@@ -160,12 +160,17 @@ No regressions. TTFS differences between runs reflect warm vs cold VRAM state, n
 
 ---
 
-## T6 Status: 🔄 Pending
+## T6 Status: ✅ Complete
 
-**Version 1.0.0 Release and Final CHANGELOG**
-*Estimate: 0.75h*
+### Version 1.0.0 Release and Final CHANGELOG
 
-Not started. CHANGELOG v1.0.0 entry to be written per sprint plan template. Git tag `v1.0.0` to be pushed to remote.
+**Estimate:** 0.75h | **Actual:** ~0.5h
+
+CHANGELOG.md v1.0.0 entry written with full project summary, added, fixed, and known limitations sections. [Unreleased] block cleared — no further planned versions. Git tag v1.0.0 pushed to remote.
+
+#### CHANGELOG.md
+- [Unreleased] block updated: no planned versions remaining.
+- v1.0.0 entry added: milestone summary, 12 functional requirements, 70/70 benchmark date, 10 findings, 8 known limitations, public repository noted.
 
 ---
 
@@ -187,9 +192,9 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 | T3 — VAD correction propagation | 1.5h | ~1.0h |
 | T4 — Research notes final audit | 1.5h | ~1.0h |
 | T5 — Cold-boot benchmark | 0.75h | ~0.75h |
-| T6 — Version 1.0.0 release | 0.75h | — |
+| T6 — Version 1.0.0 release | 0.75h | ~0.5h |
 | T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~4.25h** |
+| **Total** | **7.25h** | **~4.75h** |
 
 ---
 
