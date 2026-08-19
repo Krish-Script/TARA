@@ -3,7 +3,7 @@
 A fully offline, voice-controlled AI personal assistant running entirely on local hardware. No cloud APIs, no internet dependency, no data leaving the device.
 
 **Hardware:** NVIDIA RTX 3050 Laptop (4GB VRAM) · Windows 11 · Python 3.11.7  
-**Sprint:** Week 8 of 10 complete  
+**Sprint:** Week 9 of 10 complete  
 **Benchmark:** 70/70 (100%) intent + tool + compound routing accuracy  
 
 ---
@@ -253,7 +253,7 @@ See `docs/known_limitations.md` for full entries with root causes. Key items:
 
 ## Research Findings
 
-Nine findings documented in `docs/research_notes.md`:
+Ten findings documented in `docs/research_notes.md`:
 
 1. Intent-routed tool bypass — 58% TTFS reduction vs chat path (1.25s vs 3.00s)
 2. Response length as dominant TTFS lever on 4GB VRAM hardware

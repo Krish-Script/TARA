@@ -13,6 +13,14 @@ No planned versions. Project complete at v1.0.0.
 
 ---
 
+## [1.0.1] - 2026-08-19
+
+### Documentation
+- `docs/week10_checklist.md`: created with pre-demo verification steps, recording shot list, OBS configuration, final documentation checklist, and portfolio submission checklist.
+- `docs/week9_report.md`: T7 section completed. All 7 tasks marked complete.
+
+---
+
 ## [1.0.0] - 2026-08-19
 
 ### Milestone: Project Complete
@@ -961,6 +969,7 @@ TTS improvement from two sources: Piper generates audio faster than pyttsx3, and
 | 0.34.0 | Research notes audit complete — all 10 findings verified, Finding 7 VAD annotation added | Week 9 | ✅ Released |
 | 0.35.0 | Cold-boot benchmark 70/70 confirmed, demo Run 4 complete — definitive published result | Week 9 | ✅ Released |
 | 1.0.0 | Project complete — 70/70 benchmark, 10 findings, public repository | Week 9 | ✅ Released |
+| 1.0.1 | Week 10 checklist — pre-demo verification, shot list, portfolio submission | Week 9 | ✅ Released |
 ---
 
 *Maintained by **Krishnendu Mandal** — TARA Project*

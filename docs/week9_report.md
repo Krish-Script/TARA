@@ -3,7 +3,7 @@
 
 **Sprint duration:** Week 9 of 10
 
-**Status:** 🔄 In Progress (5/7 tasks complete)
+**Status:** ✅ Complete (7/7 tasks complete)
 
 ---
 
@@ -174,12 +174,21 @@ CHANGELOG.md v1.0.0 entry written with full project summary, added, fixed, and k
 
 ---
 
-## T7 Status: 🔄 Pending
+## T7 Status: ✅ Complete
 
-**Week 10 Preparation: Final Demo and Submission Materials**
-*Estimate: 1.0h*
+### Week 10 Preparation: Final Demo and Submission Materials
 
-Not started. `docs/week10_checklist.md` to be created with pre-demo verification, final documentation checklist, and portfolio submission checklist. Week 10 deliverable confirmed: on-camera demo recording (~3 minutes), uploaded to LinkedIn and linked in README.
+**Estimate:** 1.0h | **Actual:** ~0.5h
+
+`docs/week10_checklist.md` created with three sections: pre-demo verification, final documentation checklist, and portfolio submission checklist. Recording shot list and OBS configuration included. Week 10 deliverable defined explicitly — no planning overhead required in Week 10.
+
+#### docs/week10_checklist.md
+- Week 10 deliverable defined: on-camera demo recording (~3 minutes), uploaded to LinkedIn and linked in README.
+- Pre-demo verification: 10 steps including cold-boot, benchmark confirmation, audio mix test, and NVENC contention test.
+- Recording shot list: 10 beats with expected TARA response per beat.
+- OBS configuration documented.
+- Final documentation checklist: 8 items.
+- Portfolio submission checklist: 7 items.
 
 ---
 
@@ -193,8 +202,8 @@ Not started. `docs/week10_checklist.md` to be created with pre-demo verification
 | T4 — Research notes final audit | 1.5h | ~1.0h |
 | T5 — Cold-boot benchmark | 0.75h | ~0.75h |
 | T6 — Version 1.0.0 release | 0.75h | ~0.5h |
-| T7 — Week 10 preparation | 1.0h | — |
-| **Total** | **7.25h** | **~4.75h** |
+| T7 — Week 10 preparation | 1.0h | ~0.5h |
+| **Total** | **7.25h** | **~5.25h** |
 
 ---
 
